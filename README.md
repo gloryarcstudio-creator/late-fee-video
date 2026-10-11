@@ -9,5 +9,6 @@
 - `math/proto/` — модель на JS (`node sim.js <mode> <rounds> [seed]`)
 - `math/reels/` — ленты барабанов
 - `math/LateFeeVideo_math_v0.2.xlsx` — таблицы математики
+- `frontend/` (репозиторий) — серый прототип: `src/` игра, `tools/` выборка книг, mock RGS, QA, сборка
 - `CONCEPTS.md` — концепты этапа 1
 - `CHANGELOG.md` — версии и изменения
