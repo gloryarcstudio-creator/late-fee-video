@@ -2,8 +2,8 @@
  "mus_base": {
   "kind": "music",
   "vol": 0.55,
-  "dur": 21.333,
-  "loop": 21.333333
+  "dur": 21.33,
+  "loop": 21.329977
  },
  "mus_bonus": {
   "kind": "music",
@@ -14,8 +14,8 @@
  "mus_bigwin": {
   "kind": "music",
   "vol": 0.6,
-  "dur": 7.742,
-  "loop": 7.741935
+  "dur": 7.74,
+  "loop": 7.74
  },
  "stg_bonus_intro": {
   "kind": "stinger",
@@ -35,7 +35,7 @@
  "bw_tier": {
   "kind": "stinger",
   "vol": 0.7,
-  "dur": 1.6
+  "dur": 1.412
  },
  "bw_end": {
   "kind": "stinger",
@@ -45,17 +45,17 @@
  "ui_click": {
   "kind": "sfx",
   "vol": 0.5,
-  "dur": 0.08
+  "dur": 0.031
  },
  "ui_toggle": {
   "kind": "sfx",
   "vol": 0.5,
-  "dur": 0.16
+  "dur": 0.115
  },
  "ui_open": {
   "kind": "sfx",
   "vol": 0.45,
-  "dur": 0.3
+  "dur": 0.29
  },
  "splash_play": {
   "kind": "sfx",
@@ -65,7 +65,7 @@
  "spin_start": {
   "kind": "sfx",
   "vol": 0.5,
-  "dur": 0.38
+  "dur": 0.366
  },
  "reel_loop": {
   "kind": "sfx",
@@ -81,7 +81,7 @@
  "reel_stop_s": {
   "kind": "sfx",
   "vol": 0.7,
-  "dur": 0.75
+  "dur": 0.65
  },
  "antic_loop": {
   "kind": "sfx",
@@ -97,7 +97,7 @@
  "win_m": {
   "kind": "sfx",
   "vol": 0.6,
-  "dur": 1.1
+  "dur": 0.96
  },
  "line_tick": {
   "kind": "sfx",
@@ -113,17 +113,17 @@
  "pause": {
   "kind": "sfx",
   "vol": 0.7,
-  "dur": 0.6
+  "dur": 0.583
  },
  "rec_beep": {
   "kind": "sfx",
   "vol": 0.3,
-  "dur": 0.35
+  "dur": 0.28
  },
  "rewind": {
   "kind": "sfx",
   "vol": 0.6,
-  "dur": 1.9
+  "dur": 1.85
  },
  "rew_mult": {
   "kind": "sfx",
@@ -133,12 +133,12 @@
  "second_take": {
   "kind": "sfx",
   "vol": 0.65,
-  "dur": 0.35
+  "dur": 0.1
  },
  "retrigger": {
   "kind": "sfx",
   "vol": 0.6,
-  "dur": 1.0
+  "dur": 0.805
  },
  "trigger": {
   "kind": "sfx",
@@ -148,11 +148,11 @@
  "nofunds": {
   "kind": "sfx",
   "vol": 0.3,
-  "dur": 0.4
+  "dur": 0.358
  },
  "error": {
   "kind": "sfx",
   "vol": 0.45,
-  "dur": 0.8
+  "dur": 0.795
  }
 }
