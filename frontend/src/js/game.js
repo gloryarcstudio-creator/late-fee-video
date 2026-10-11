@@ -73,8 +73,18 @@
     st.classList.toggle('port', port); st.classList.toggle('land', !port);
     st.style.width = W + 'px'; st.style.height = H + 'px';
     st.style.transform = `translate(${(vw - W * sc) / 2}px,${(vh - H * sc) / 2}px) scale(${sc})`;
-    const cell = port ? 128 : 136;
-    if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, 6); }
+    // CRT frame geometry: screen hole fractions measured on assets/scene/tv_frame.webp (1432×1158)
+    const HX0 = 0.0915, HW = 0.8156, HY0 = 0.0984, HH = 0.7029, AR = 1158 / 1432, gap = 6;
+    const cell = port ? 112 : 120, pad = port ? 14.5 : 30;
+    const reelsW = cell * 5 + gap * 4, reelsH = cell * 3, holeW = reelsW + 2 * pad;
+    const tvW = holeW / HW, tvH = tvW * AR, holeH = tvH * HH, holeTop = (holeH - reelsH) / 2;
+    const tvLeft = port ? -16 : 221, tvTop = port ? 265 : 24;
+    const tv = $('tv');
+    tv.style.left = (tvLeft + HX0 * tvW + pad) + 'px'; tv.style.top = (tvTop + HY0 * tvH + holeTop) + 'px';
+    const v = { '--cell': cell + 'px', '--gap': gap + 'px', '--pad': pad + 'px', '--holeTop': holeTop + 'px', '--tvw': tvW + 'px', '--tvh': tvH + 'px',
+      '--fx': -(pad + HX0 * tvW) + 'px', '--fy': -(holeTop + HY0 * tvH) + 'px' };
+    for (const k in v) st.style.setProperty(k, v[k]);
+    if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); }
   }
 
   // ---------- UI state ----------
@@ -444,6 +454,12 @@
   }
 
   // ---------- boot ----------
+  const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`).concat(['assets/scene/tv_frame.webp']);
+  function preload(ms = 8000) {
+    const one = u => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = u; });
+    return Promise.race([Promise.all(ART.map(one)), new Promise(r => setTimeout(r, ms))]);
+  }
+
   async function boot() {
     I18N.setLang(P.lang); I18N.setCurrency(P.currency || 'USD');
     I18N.setSocial(P.social || I18N.isSocialCurrency(P.currency));
@@ -453,11 +469,11 @@
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');
     // splash counter as a tape counter
     let n = 0; const ctr = setInterval(() => { n = Math.min(9999, n + 137); $('loadCounter').textContent = String(n).padStart(4, '0'); }, 40);
-    if (S.replay) { clearInterval(ctr); return startReplay(); }
+    if (S.replay) { await preload(); clearInterval(ctr); return startReplay(); }
     let auth;
     try { auth = await api.authenticate(); }
     catch (e) { clearInterval(ctr); return fatal(`${t('errAuth')} (${e.code || 'ERR_GEN'})`); }
-    clearInterval(ctr); $('loadCounter').textContent = '0000';
+    await preload(); clearInterval(ctr); $('loadCounter').textContent = '0000';
     const cfg = auth.config || {};
     S.jur = cfg.jurisdiction || {};
     if (S.jur.socialCasino) I18N.setSocial(true);
