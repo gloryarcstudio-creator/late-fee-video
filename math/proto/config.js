@@ -63,8 +63,8 @@ const MODES = {
   base: { cost: 1, reels: 'base' },
   ante: { cost: 3, reels: 'ante' },
   bonus: { cost: 100, buy: true, spins: 10 },
-  double: { cost: 260, buy: true, spins: 10, forceRewEvery: 3 },
-  director: { cost: 570, buy: true, spins: 12, multStart: 2, forceRewEvery: 2 }, // multStart: index into REWIND_MULTS (x5)
+  double: { cost: 300, buy: true, spins: 10, forceRewEvery: 3, multStart: 1 }, // multStart: index into REWIND_MULTS (x3)
+  director: { cost: 600, buy: true, spins: 13, multStart: 2, forceRewEvery: 2 }, // starts at x5
 };
 
 module.exports = {
