@@ -3,19 +3,19 @@
 
 const SYMBOLS = ['P', 'H1', 'H2', 'H3', 'M1', 'M2', 'M3', 'L1', 'L2', 'L3', 'L4', 'W', 'S', 'R'];
 
-// [3, 4, 5] of a kind on a line, in LINE-bet units (line bet = total bet / 20)
+// [3, 4, 5] of a kind on a line, in LINE-bet units (line bet = total bet / 20). All even: RGS needs 0.1x steps.
 const LINE_PAYS = {
   P: [50, 250, 1000],
   H1: [40, 150, 500],
   H2: [30, 120, 400],
-  H3: [25, 100, 300],
+  H3: [24, 100, 300],
   M1: [20, 60, 200],
-  M2: [15, 50, 150],
-  M3: [15, 40, 125],
-  L1: [10, 25, 100],
-  L2: [10, 25, 100],
-  L3: [10, 20, 75],
-  L4: [10, 20, 75],
+  M2: [14, 50, 150],
+  M3: [14, 40, 120],
+  L1: [10, 24, 100],
+  L2: [10, 24, 100],
+  L3: [10, 20, 70],
+  L4: [10, 20, 70],
 };
 // Same table in multiples of TOTAL bet
 const PAYTABLE = Object.fromEntries(Object.entries(LINE_PAYS).map(([k, v]) => [k, v.map((x) => x / 20)]));

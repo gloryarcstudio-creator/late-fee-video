@@ -1,5 +1,5 @@
 node_modules/
 *.zst
-library/
 __pycache__/
 .DS_Store
+math/sdk/late_fee_video/library/
