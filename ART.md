@@ -1,6 +1,6 @@
 # Late Fee Video — ART v0.1 (черновик для оценки бюджета)
 
-Статус: этап 4, ждём утверждения стиля ⛔ (раздел 6). **Решение 2026-10-11: полный вариант (103 картинки + 14 видео).** Style guide и ключевой кадр ещё не утверждены (⛔). Здесь перечислены все ассеты, промпты к ним и сколько генераций нужно, чтобы посчитать кредиты Higgsfield.
+Статус: этап 4, **стиль утверждён 2026-10-11: KF_04 + DEL_REF_04** (`art/style/`). **Решение: полный вариант (103 картинки + 14 видео).** Идёт серия, пачки промптов в `art/batches/`. Здесь перечислены все ассеты, промпты к ним и сколько генераций нужно, чтобы посчитать кредиты Higgsfield.
 Правила проекта: прозрачный фон, все состояния на одинаковом холсте, без текста внутри картинок, панели под 9-slice. Сначала используем то, что получается без генерации (код, кадрирование, перекраска), потом один тест в минимальном качестве и только после него серию.
 
 ## 1. Style guide (предложение)
@@ -33,6 +33,8 @@
 
 **NEGATIVE:**
 `text, letters, numbers, logo, watermark, signature, real movie titles, real brands, Blockbuster, Hollywood Video, famous characters, blurry, lowres, extra fingers, deformed hands, cropped, frame border`
+
+**REF(x):** картинка-референс, которую прикладываем к генерации (режим reference / image-to-image с низкой силой 0.2–0.35). REF(KF_04) — для сцены, ТВ, символов, UI, оверлеев; REF(DEL_REF_04) — для всех поз Дела.
 
 **VIDEO (для image-to-video):**
 `subtle loopable motion, static camera, no camera movement, keep character design identical, same lighting, 24 fps`
@@ -73,10 +75,11 @@
 
 **BG-L:** `wide interior of a small 1989 video rental store at night, empty center area, wooden shelves with rows of anonymous VHS boxes with abstract colorful covers, return counter at the bottom, ceiling lamp casting warm light, window on the right showing a dark rainy street with a magenta neon OPEN sign, carpet floor, no people, depth of field soft background, ` + STYLE
 **BG-B (img2img из BG-L, strength 0.45):** `same video rental store after closing time, main lights off, room lit only by magenta and cyan neon and the glow of a TV, moody, darker shelves, ` + STYLE
-**TV:** `front view of a chunky 1980s CRT television cabinet with wood-grain plastic sides and silver control panel at the bottom with blank knobs and buttons, rounded screen area completely empty and flat pure green #00FF00 for cutout, ` + ISOLATED + STYLE
+**TV (под KF_04):** `front view of a chunky 1980s CRT television, matte black plastic cabinet with a horizontal speaker grille strip at the bottom and a thin dark bezel, exactly like the TV in the reference key frame, rounded screen area completely empty and flat pure green #00FF00 for cutout, ` + ISOLATED + STYLE + REF(KF_04)
 
 ### 4.3 Символы (14 шт., 512×512, прозрачный фон)
 Состояния: normal (генерация), win (свечение и пульс кодом), blur (из normal при сборке). Ген. = 2 на символ, для Дел, WILD, KEY, REW по 3.
+Ко всем промптам символов добавляется `match the render style, lighting and material quality of the symbols in the reference key frame` + REF(KF_04). Эталон: попкорн, стакан, телефон, кассеты и ключ уже нарисованы в KF_04.
 | ID | Символ | Ген. | Промпт (+ ISOLATED + STYLE) |
 |---|---|---|---|
 | L1 | Кнопка ▶ Play | 2 | `chunky rubber TV remote button with an embossed right-pointing triangle play icon, glossy dark plastic, soft green accent` |
@@ -105,7 +108,7 @@
 | D-PAUSE | PAUSE | 2 | — | `pointing the remote at the TV with thumb on a button, smug` |
 | D-REW | REWIND | 2 | 2 (2 с) | `pressing the remote hard with both hands, determined` / `presses remote twice, arm recoils` |
 | D-BORED | без выигрыша (редко) | 1 | — | `rests chin on hand, unimpressed, chewing gum` |
-Все промпты поз: `full body of the night clerk from the reference sheet, ` + поза + ISOLATED + STYLE. Видео: движение + VIDEO.
+Все промпты поз: `full body of the night clerk from the reference sheet, same face, hair, maroon vest, striped shirt, blank badge, wristwatch and sneakers, ` + поза + ISOLATED + STYLE + REF(DEL_REF_04). Пульт всегда в правой руке. Видео: движение + VIDEO.
 
 ### 4.5 UI (без текста, иконки кодом)
 | ID | Ассет | Размер | Состояния | Ген. |
@@ -200,7 +203,7 @@ TILE / COVER: `promotional art, the night clerk grinning in front of the glowing
 - Листы не являются техническими модельными листами: мелкие расхождения складок допускаются, проверяем только лицо, причёску, жилет, бейдж, кеды.
 
 ## 7. Порядок генерации
-1. KF и DEL-REF → ⛔ утверждение стиля.
+1. KF и DEL-REF → ⛔ утверждение стиля. **Сделано: KF_04 + DEL_REF_04.**
 2. Символы по одному тесту на группу (L, M, H, спец), затем серия.
 3. Фоны, рамка ТВ, UI.
 4. Позы Дел, затем видео (только после проверки поз).
