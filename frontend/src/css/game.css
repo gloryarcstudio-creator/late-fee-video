@@ -2,18 +2,29 @@
 :root { --cell: 136px; --gap: 6px; --bg: #141416; --panel: #26262a; --line: #4a4a52; --txt: #e6e6e6; --dim: #8a8a92;
   --wild: #d8b44a; color-scheme: dark; --scatter: #4ac6d8; --rew: #d84a9e; --hit: #fff; --osd: #e8f0ff; }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; touch-action: manipulation; background: #0b0b0c; color: var(--txt);
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { position: fixed; inset: 0; touch-action: manipulation; background: #0b0b0c; color: var(--txt);
   font-family: ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .hide { display: none !important; }
 button { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 
-#stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
-#bg { position: absolute; inset: 0; background: #0b0b0c; }
-#bg .bgl, #bg .bgb { position: absolute; inset: 0; background: url(../assets/bg/bg_land.webp) center / cover no-repeat; }
-#bg .bgb { background-image: url(../assets/bg/bg_bonus.webp); opacity: 0; transition: opacity .8s; }
-#stage.port #bg .bgl { background-image: url(../assets/bg/bg_land_m.webp); } #stage.port #bg .bgb { background-image: url(../assets/bg/bg_bonus_m.webp); }
+#stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; --e: 0px; --lx: 0px; --ly: 0px; }
+/* #bg and full-screen overlays bleed into the letterbox (--lx/--ly set in layout()) so no black bars show */
+#bg, #stage > .overlay, #fx { inset: calc(-1 * var(--ly)) calc(-1 * var(--lx)) !important; }
+#bg { position: absolute; background: #0b0b0c; }
+/* no image until layout() sets land/port; phones (.lite) and portrait take the 1280-px copies */
+#bg .bgl, #bg .bgb { position: absolute; inset: 0; background: center / cover no-repeat; }
+#bg .bgb { opacity: 0; transition: opacity .8s; }
+#stage.land #bg .bgl { background-image: url(../assets/bg/bg_land.webp); } #stage.land #bg .bgb { background-image: url(../assets/bg/bg_bonus.webp); }
+#stage.port #bg .bgl, #stage.lite #bg .bgl { background-image: url(../assets/bg/bg_land_m.webp); } #stage.port #bg .bgb, #stage.lite #bg .bgb { background-image: url(../assets/bg/bg_bonus_m.webp); }
 #stage.bonus #bg .bgb { opacity: 1; }
+/* light start: these load once the game is shown (lateArt) unless already needed */
+#stage:not(.late-art):not(.bonus) #bg .bgb { background-image: none; }
+#stage:not(.late-art) #del:not([data-state="lean"]) .anim[data-anim="lean"] { background-image: none; }
+#stage:not(.late-art) #del:not([data-state="cheer"]) .anim[data-anim="cheer"] { background-image: none; }
+#stage:not(.late-art) #del:not([data-state="wow"]) .anim[data-anim="wow"] { background-image: none; }
+#stage:not(.late-art) #del:not([data-state="rew"]) .anim[data-anim="rew"] { background-image: none; }
 
 
 
@@ -106,7 +117,7 @@ button { font: inherit; color: inherit; }
 #betField { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
 #anteTag { position: absolute; right: -14px; top: -22px; width: 58px; height: 40px; background: url(../assets/ui/ui_tag.webp) center / contain no-repeat; pointer-events: none; }
 #betField > div { min-width: 120px; }
-#betField .btn.round { width: 48px; height: 48px; font-size: 26px; }
+#betField .btn.round { width: 54px; height: 54px; font-size: 26px; }
 
 #toast { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); background: #000; border: 2px solid #d84; padding: 12px 22px; font-size: 22px; z-index: 30; white-space: nowrap; }
 
@@ -114,43 +125,61 @@ button { font: inherit; color: inherit; }
 .overlay video, .overlay img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ov-inner { position: relative; }
 #bigBadge { width: 220px; height: 220px; margin: 0 auto 8px; background: url(../assets/overlay/badge_big.webp) center / contain no-repeat; }
+/* the rating sticker has a blank centre (no text in art): stars per tier are drawn in code */
+#bigBadge { display: flex; align-items: center; justify-content: center; font-size: 76px; line-height: 1; letter-spacing: -4px; color: #fff4c8; text-shadow: 0 2px 0 #000, 0 0 10px #000; }
+#bigBadge::after { content: "★"; } #bigBadge.megaWin::after { content: "★★"; } #bigBadge.epicWin::after { content: "★★★"; } #bigBadge.epicWin::after { font-size: 64px; } #bigBadge.cultWin::after { content: "★★★★"; font-size: 50px; }
 #bigBadge.megaWin { background-image: url(../assets/overlay/badge_mega.webp); } #bigBadge.epicWin { background-image: url(../assets/overlay/badge_epic.webp); } #bigBadge.cultWin { background-image: url(../assets/overlay/badge_cult.webp); }
 #banner .ov-inner, #bigWin .ov-inner { text-shadow: 0 2px 8px #000, 0 0 24px #000, 0 0 40px #000; }
+/* readable over the bright big-win video: dark oval scrim behind the text, hard outline, particles stay behind the text */
+.ov-inner::before { content: ""; position: absolute; left: 50%; top: 50%; width: 170%; height: 150%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(0,0,0,.78), rgba(0,0,0,.55) 60%, rgba(0,0,0,0)); }
+#bigTitle, #bannerTitle, #bigAmt, #bannerSub { text-shadow: -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 4px 0 #000, 0 0 18px #000, 0 0 36px #000; }
+#bigTitle { color: #ffd34a; } #bigAmt { color: #fff; font-weight: 700; }
+.ov-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ov-fx .p { position: absolute; top: -80px; width: 52px; height: 52px; background: center / contain no-repeat; animation: fall var(--d) linear forwards; }
+#bigWin .ov-inner { z-index: 1; }
 #fx { position: absolute; inset: 0; pointer-events: none; z-index: 25; overflow: hidden; }
 #fx .p { position: absolute; top: -80px; width: 52px; height: 52px; background: center / contain no-repeat; animation: fall var(--d) linear forwards; }
-@keyframes fall { to { transform: translate(var(--dx), 820px) rotate(var(--rot)); } }
+@keyframes fall { to { transform: translate(var(--dx), var(--fall, 900px)) rotate(var(--rot)); } }
 @media (prefers-reduced-motion: reduce) { #fx .p { display: none; } }
 .ov-inner { text-align: center; }
 #bigTitle, #bannerTitle { font-size: 76px; letter-spacing: 6px; color: var(--wild); }
 #bigAmt, #bannerSub { font-size: 54px; margin-top: 12px; }
-.ov-inner small { display: block; margin-top: 26px; color: var(--dim); font-size: 18px; }
+.ov-inner small { display: block; margin-top: 26px; color: #c8c8d0; font-size: 20px; letter-spacing: 2px; }
 
 /* ---------- landscape 1280×720 ---------- */
-#stage.land #del { left: 10px; top: 40px; width: 220px; height: 520px; }
-#stage.land #tape { left: 14px; top: 574px; width: 206px; height: 60px; font-size: 22px; gap: 8px; z-index: 11; }
-#stage.land #fsBox { left: 1070px; top: 120px; width: 190px; }
-#stage.land #multBox { left: 1070px; top: 220px; width: 190px; }
-#stage.land #tapeLog { left: 1070px; top: 320px; width: 190px; height: 180px; }
-#stage.land #buyBtn { left: 1056px; top: 440px; width: 210px; font-size: 14px; }
-#stage.land #anteBtn { left: 1056px; top: 510px; width: 210px; height: 56px; font-size: 13px; }
-#stage.land #hud { left: 228px; right: 22px; top: 572px; height: 140px; justify-content: space-between; }
+#stage.land #del { left: calc(10px + var(--e) / 4); top: 40px; width: 220px; height: 520px; }
+#stage.land #tape { left: calc(14px + var(--e) / 4); top: 574px; width: 206px; height: 60px; font-size: 22px; gap: 8px; z-index: 11; }
+#stage.land #fsBox { left: calc(1070px + var(--e)); top: 120px; width: 190px; }
+#stage.land #multBox { left: calc(1070px + var(--e)); top: 220px; width: 190px; }
+#stage.land #tapeLog { left: calc(1070px + var(--e)); top: 320px; width: 190px; height: 180px; }
+#stage.land #buyBtn { left: calc(1056px + var(--e)); top: 440px; width: 210px; font-size: 14px; }
+#stage.land #anteBtn { left: calc(1056px + var(--e)); top: 510px; width: 210px; height: 56px; font-size: 13px; }
+#stage.land #hud { left: calc(228px + var(--e) / 2); right: 22px; top: 572px; height: 140px; justify-content: space-between; }
 #stage.land #spinBtn { order: 9; }
+/* in the bonus the side column (portrait: the row under the TV) shows spins/multiplier/tape log; the disabled catalog and ante buttons would sit under the log */
+#stage.bonus #buyBtn, #stage.bonus #anteBtn { visibility: hidden; }
 
 /* ---------- portrait 720×1280 ---------- */
-#stage.port #del { left: 6px; top: -4px; width: 240px; height: 290px; }
-#stage.port #tape { left: 260px; top: 60px; width: 430px; height: 70px; }
-#stage.port #fsBox { left: 260px; top: 150px; width: 205px; height: 110px; }
-#stage.port #multBox { left: 485px; top: 150px; width: 205px; height: 110px; }
-#stage.port #tapeLog { left: 30px; top: 880px; width: 660px; height: 44px; display: flex; gap: 12px; font-size: 14px; padding: 0 4px; }
-#stage.port #buyBtn { left: 30px; top: 930px; width: 320px; height: 56px; }
-#stage.port #anteBtn { left: 370px; top: 930px; width: 320px; height: 56px; }
-#stage.port #hud { left: 20px; right: 20px; top: 1000px; bottom: 16px; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 14px 16px; }
+/* tall phones: --e (0–280) extra design height; 60 % goes above the TV (bigger Del), the rest spreads the HUD */
+#stage.port #del { left: 0; top: 4px; width: 250px; height: calc(430px + var(--e) * .45); z-index: 0; } /* stands behind the TV, cut at the thighs */
+#stage.port #tape { left: 260px; top: calc(56px + var(--e) * .25); width: 430px; height: 70px; }
+#stage.port #fsBox { left: 260px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
+#stage.port #multBox { left: 485px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
+#stage.port #tapeLog { left: 30px; top: calc(885px + var(--e) * .6); width: 660px; height: 52px; display: flex; gap: 12px; font-size: 14px; padding: 0 4px; }
+#stage.port #buyBtn { left: 30px; top: calc(885px + var(--e) * .6); width: 320px; height: 56px; }
+#stage.port #anteBtn { left: 370px; top: calc(885px + var(--e) * .6); width: 320px; height: 56px; }
+/* HUD rows: balance | win, then bet, then menu · sound · SPIN · turbo · auto */
+#stage.port #hud { left: 20px; right: 20px; top: calc(952px + var(--e) * .6); bottom: 12px; flex-wrap: wrap; justify-content: center; align-content: space-evenly; gap: 10px 18px; }
+#stage.port #hud::before { content: ""; flex-basis: 100%; height: 0; order: 5; }
 #stage.port #balField, #stage.port #winField { width: 320px; }
-#stage.port #betField { order: 2; }
-#stage.port #menuBtn { order: 3; } #stage.port #soundBtn { order: 4; }
-#stage.port #spinBtn { order: 5; width: 130px; height: 130px; }
-#stage.port #turboBtn { order: 6; } #stage.port #autoBtn { order: 7; }
-#stage.port .btn.round { width: 72px; height: 72px; align-self: center; }
+#stage.port #balField { order: 1; } #stage.port #winField { order: 2; }
+#stage.port #betField { order: 4; width: 380px; justify-content: space-between; }
+#stage.port #menuBtn { order: 6; } #stage.port #soundBtn { order: 7; }
+#stage.port #spinBtn { order: 8; width: 136px; height: 136px; }
+#stage.port #turboBtn { order: 9; } #stage.port #autoBtn { order: 10; }
+#stage.port .btn.round { width: 78px; height: 78px; align-self: center; }
+#stage.port #betField .btn.round { width: 64px; height: 64px; }
 
 #stage.busy #spinBtn { border-color: #888; }
 #stage.bonus #screen { background: radial-gradient(ellipse at 50% 45%, #5a1f6e 0%, #2d1252 65%, #150a30 100%); }
@@ -162,7 +191,7 @@ button { font: inherit; color: inherit; }
   background: none; border: clamp(18px, 4vmin, 40px) solid transparent; border-image: url(../assets/ui/ui_panel.webp) 136 fill stretch; padding: clamp(4px, 1.5vmin, 12px); font-size: clamp(12px, 2.4vmin, 16px); }
   background: #1d1d21; border: 2px solid #55555c; padding: clamp(10px, 3vmin, 22px); font-size: clamp(12px, 2.4vmin, 16px); }
 .dlg.wide { width: min(860px, 96vw); }
-.dlg h2 { margin: 0 0 12px; font-size: 1.4em; letter-spacing: 2px; }
+.dlg h2 { margin: .5em 2.2em 12px 0; font-size: 1.4em; letter-spacing: 2px; }
 .dlg h3 { margin: 18px 0 6px; color: var(--wild); font-size: 1.05em; }
 .dlg .close { position: absolute; right: 8px; top: 8px; padding: 4px 10px; }
 .dlg .row { display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }

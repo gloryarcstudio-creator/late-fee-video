@@ -59,7 +59,8 @@
   const FX = ['ticket', 'popcorn', 'tape', 'sparkle'].flatMap(k => [1, 2, 3, 4].map(i => `assets/fx/${k}_${i}.webp`));
   function particles(n = 28) {
     if (fast()) return;
-    const box = $('fx'); const W = $('stage').classList.contains('port') ? 720 : 1280;
+    const box = $('bigWin').classList.contains('hide') ? $('fx') : $('bigFx'); const W = $('stage').offsetWidth;
+    box.style.setProperty('--fall', $('stage').offsetHeight + 160 + 'px');
     for (let i = 0; i < n; i++) {
       const p = document.createElement('div'); p.className = 'p';
       p.style.backgroundImage = `url(${FX[Math.floor(Math.random() * FX.length)]})`;
@@ -89,18 +90,22 @@
   function layout() {
     const vw = window.innerWidth, vh = window.innerHeight;
     const port = vh > vw * 1.05;
-    const W = port ? 720 : 1280, H = port ? 1280 : 720;
+    // the long side of the design canvas stretches from 1280 up to 1560 to follow the screen; the rest is letterbox filled by #bg
+    const long = Math.round(Math.min(1560, Math.max(1280, port ? 720 * vh / vw : 720 * vw / vh))), e = long - 1280;
+    const W = port ? 720 : long, H = port ? long : 720;
     const sc = Math.min(vw / W, vh / H);
     const st = $('stage');
-    st.classList.toggle('port', port); st.classList.toggle('land', !port);
+    st.classList.toggle('port', port); st.classList.toggle('land', !port); st.classList.toggle('lite', Math.max(vw, vh) <= 960);
     st.style.width = W + 'px'; st.style.height = H + 'px';
-    st.style.transform = `translate(${(vw - W * sc) / 2}px,${(vh - H * sc) / 2}px) scale(${sc})`;
+    const ox = (vw - W * sc) / 2, oy = (vh - H * sc) / 2;
+    st.style.transform = `translate(${ox}px,${oy}px) scale(${sc})`;
+    st.style.setProperty('--e', e + 'px'); st.style.setProperty('--lx', Math.ceil(ox / sc) + 1 + 'px'); st.style.setProperty('--ly', Math.ceil(oy / sc) + 1 + 'px');
     // CRT frame geometry: screen hole fractions measured on assets/scene/tv_frame.webp (1432×1158)
     const HX0 = 0.0915, HW = 0.8156, HY0 = 0.0984, HH = 0.7029, AR = 1158 / 1432, gap = 6;
     const cell = port ? 112 : 120, pad = port ? 14.5 : 30;
     const reelsW = cell * 5 + gap * 4, reelsH = cell * 3, holeW = reelsW + 2 * pad;
     const tvW = holeW / HW, tvH = tvW * AR, holeH = tvH * HH, holeTop = (holeH - reelsH) / 2;
-    const tvLeft = port ? -16 : 221, tvTop = port ? 265 : 24;
+    const tvLeft = port ? -16 : 221 + e / 2, tvTop = port ? 265 + e * 0.6 : 24;
     const tv = $('tv');
     tv.style.left = (tvLeft + HX0 * tvW + pad) + 'px'; tv.style.top = (tvTop + HY0 * tvH + holeTop) + 'px';
     const v = { '--cell': cell + 'px', '--gap': gap + 'px', '--pad': pad + 'px', '--holeTop': holeTop + 'px', '--tvw': tvW + 'px', '--tvh': tvH + 'px',
@@ -311,7 +316,7 @@
         const tier = tierOf(v / base) || 'bigWin';
         if (lastTier && tier !== lastTier) AUDIO.sfx('bw_tier');
         lastTier = tier;
-        $('bigTitle').textContent = t(tier);
+        $('bigTitle').textContent = t(tier); $('bigBadge').className = tier;
         $('bigAmt').textContent = money(v, dec);
         if (k < 1) requestAnimationFrame(frame);
         else { AUDIO.stop('count_loop'); AUDIO.sfx('bw_end'); setTimeout(end, S.auto ? 900 : 2200); }
@@ -492,14 +497,16 @@
       };
     };
     $('splashBtn').disabled = false; $('splashBtn').textContent = t('play');
-    $('splashBtn').onclick = () => { $('splash').classList.add('hide'); AUDIO.unlock(); AUDIO.sfx('splash_play'); show(false); };
+    $('splashBtn').onclick = () => { $('splash').classList.add('hide'); lateArt(); AUDIO.unlock(); AUDIO.sfx('splash_play'); show(false); };
   }
 
   // ---------- boot ----------
   const PORT0 = window.innerHeight > window.innerWidth * 1.05;
   const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`)
-    .concat(['assets/scene/tv_frame.webp', PORT0 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', 'assets/del/del_idle_strip.webp', 'assets/promo/logo_emblem.webp'],
+    .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', 'assets/del/del_idle_strip.webp', 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
+  // bonus background and Del's one-shot strips (~2.2 MB) load after the game is shown, not behind the splash
+  function lateArt() { setTimeout(() => $('stage').classList.add('late-art'), 600); }
   function preload(ms = 12000) {
     const one = u => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = u; });
     return Promise.race([Promise.all(ART.map(one)), new Promise(r => setTimeout(r, ms))]);
@@ -541,7 +548,7 @@
     if (P.dev && !RGS_MODE) devPanel();
     $('splashBtn').disabled = false; $('splashBtn').textContent = t('play');
     $('splashBtn').onclick = async () => {
-      $('splash').classList.add('hide');
+      $('splash').classList.add('hide'); lateArt();
       AUDIO.unlock(); AUDIO.sfx('splash_play'); AUDIO.setMusic('mus_base'); AUDIO.preload();
       if (S.pendingRound) {
         const r = S.pendingRound; S.pendingRound = null;

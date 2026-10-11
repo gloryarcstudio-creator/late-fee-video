@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-<div id="stage" class="land">
+<div id="stage">
   <div id="bg"><div class="bgl"></div><div class="bgb"></div></div>
 
   <div id="del" data-state="idle"><div class="anim" data-anim="idle"></div><div class="anim" data-anim="lean"></div><div class="anim" data-anim="cheer"></div><div class="anim" data-anim="wow"></div><div class="anim" data-anim="rew"></div><div class="still" data-anim="pause"></div><div class="still" data-anim="bored"></div></div>
@@ -53,7 +53,7 @@
   <div id="toast" class="hide"></div>
 
   <!-- overlays -->
-  <div id="bigWin" class="overlay hide"><video id="bigVideo" muted loop playsinline preload="none"><source src="assets/overlay/ov_bigwin.mp4" type="video/mp4"><source src="assets/overlay/ov_bigwin.webm" type="video/webm"></video><div class="ov-inner"><div id="bigBadge"></div><div id="bigTitle"></div><div id="bigAmt"></div><small data-t="tapToSkip"></small></div></div>
+  <div id="bigWin" class="overlay hide"><video id="bigVideo" muted loop playsinline preload="none"><source src="assets/overlay/ov_bigwin.mp4" type="video/mp4"><source src="assets/overlay/ov_bigwin.webm" type="video/webm"></video><div id="bigFx" class="ov-fx"></div><div class="ov-inner"><div id="bigBadge"></div><div id="bigTitle"></div><div id="bigAmt"></div><small data-t="tapToSkip"></small></div></div>
   <div id="banner" class="overlay hide"><video id="bannerVideo" class="hide" muted playsinline preload="none"></video><img id="bannerImg" class="hide" alt=""><div class="ov-inner"><div id="bannerTitle"></div><div id="bannerSub"></div><small data-t="tapToContinue"></small></div></div>
 </div>
 
