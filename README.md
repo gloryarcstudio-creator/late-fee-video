@@ -1,2 +1,13 @@
-# late-fee-video
-VHS game
+# Late Fee Video
+
+Оригинальная слот-игра для Stake Engine: ночная смена в видеопрокате 1989 года, эстетика VHS.
+5×3, 20 линий, RTP 96 %, max win 15 000×, высокая волатильность.
+
+## Файлы проекта (источник правды)
+- `GDD.md` — концепция, механики, состояния, экраны
+- `MATH.md` — параметры, таблица выплат, RTP и max win по режимам
+- `math/proto/` — модель на JS (`node sim.js <mode> <rounds> [seed]`)
+- `math/reels/` — ленты барабанов
+- `math/LateFeeVideo_math_v0.2.xlsx` — таблицы математики
+- `CONCEPTS.md` — концепты этапа 1
+- `CHANGELOG.md` — версии и изменения
