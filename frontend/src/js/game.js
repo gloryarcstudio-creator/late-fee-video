@@ -10,7 +10,7 @@
   const TIERS = [[500, 'cultWin'], [100, 'epicWin'], [50, 'megaWin'], [20, 'bigWin']];
 
   const S = {
-    balance: 0, bets: [], betIdx: 0, ante: false, busy: false, turbo: false, muted: false,
+    balance: 0, bets: [], betIdx: 0, ante: false, busy: false, turbo: false, muted: AUDIO.isMuted(),
     auto: 0, autoCfg: null, autoStart: 0, jur: {}, inBonus: false, fsTotal: 0, mult: 2, capped: false,
     bet: 0, mode: 'base', roundHadBonus: false, skip: false, ready: false, replay: P.replay, pendingRound: null,
   };
@@ -76,19 +76,14 @@
     $('tapeVal').textContent = amount100 > 0 ? fmt(winMoney(amount100)) : '0000';
   }
 
-  // ---------- sound (single gate; placeholder blips until AUDIO.md assets exist) ----------
-  let actx = null;
-  const TONES = { stop: [180, 0.05], win: [660, 0.12], big: [880, 0.4], scatter: [990, 0.2], pause: [300, 0.15], rew: [240, 0.35], rec: [1200, 0.05], click: [500, 0.03], trigger: [520, 0.5] };
-  function sfx(name) {
-    if (S.muted || fast() || !TONES[name]) return;
-    try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      const [f, d] = TONES[name], o = actx.createOscillator(), g = actx.createGain();
-      o.type = 'square'; o.frequency.value = f; g.gain.value = 0.04;
-      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + d);
-      o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + d);
-    } catch (e) {}
+  // ---------- sound (AUDIO.js: one gate, scene music, stingers; legacy cue names kept for the event player) ----------
+  const CUE = { stop: 'reel_stop', win: 'win_s', big: 'bw_tier', scatter: 'win_m', rew: 'rewind', rec: 'rec_beep', click: 'ui_click' };
+  function sfx(name) { AUDIO.sfx(CUE[name] || name); }
+  const SCENE_MUSIC = () => S.inBonus ? 'mus_bonus' : 'mus_base';
+  function stopReel(board, strip) {
+    return r => { const col = (board[r] || []).map(x => (typeof x === 'string' ? x : x.name)); AUDIO.sfx(col[1] === 'S' || col[2] === 'S' || col[3] === 'S' ? 'reel_stop_s' : 'reel_stop'); };
   }
+  const AUDIO_CORE = ['ui_click', 'ui_toggle', 'ui_open', 'splash_play', 'spin_start', 'reel_loop', 'reel_stop', 'reel_stop_s', 'win_s', 'win_m', 'line_tick', 'nofunds', 'mus_base'];
 
   // ---------- layout ----------
   function layout() {
@@ -150,13 +145,15 @@
       const antic = (e.anticipation || []).some(a => a > 0);
       del(antic ? 'lean' : 'spin');
       if (antic) $('tracking').classList.remove('hide');
-      updateUI();
-      await Reels.spin(e.board, { anticipation: e.anticipation, turbo: S.turbo, fast: fast(), strip, onStop: () => sfx('stop') });
+      updateUI(); AUDIO.loop('reel_loop');
+      const stopR = stopReel(e.board), anticAt = (e.anticipation || []).findIndex(a => a > 0);
+      await Reels.spin(e.board, { anticipation: e.anticipation, turbo: S.turbo, fast: fast(), strip, onStop: r => { stopR(r); if (anticAt > 0 && r === anticAt - 1) { AUDIO.stop('reel_loop'); AUDIO.loop('antic_loop'); } } });
+      AUDIO.stop('reel_loop'); AUDIO.stop('antic_loop', 0.3);
       $('tracking').classList.add('hide');
       updateUI(); del('idle');
     },
     async winInfo(e) { S.lastWins = e.wins; await showWins(e.wins); },
-    async setWin(e) { popup(fmt(winMoney(e.amount))); del('cheer'); sfx('win'); await wait(250); },
+    async setWin(e) { popup(fmt(winMoney(e.amount))); del('cheer'); AUDIO.sfx(e.amount >= 500 ? 'win_m' : 'win_s'); await wait(250); },
     async setTotalWin(e) {
       S.roundWin = e.amount;
       $('winVal').textContent = e.amount > 0 ? fmt(winMoney(e.amount)) : '—';
@@ -176,12 +173,14 @@
       tapeCounter(S.roundWin || 0);
       updateUI();
       if (S.auto && S.autoCfg && S.autoCfg.stopBonus) S.autoStopAfter = true;
+      AUDIO.setMusic(null); AUDIO.stinger('stg_bonus_intro');
       await banner(t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 3000, { video: vidSrc('assets/overlay/ov_bonus_intro') });
+      AUDIO.setMusic('mus_bonus');
     },
     async updateFreeSpin(e) { S.fsTotal = e.total; $('fsVal').textContent = `${Math.min(e.amount + 1, e.total)}/${e.total}`; },
     async freeSpinRetrigger(e) {
       const n = e.totalFs - S.fsTotal; S.fsTotal = e.totalFs;
-      Reels.highlight(e.positions, 'hit-s'); sfx('scatter');
+      Reels.highlight(e.positions, 'hit-s'); sfx('retrigger');
       const cur = $('fsVal').textContent.split('/')[0]; $('fsVal').textContent = `${cur}/${e.totalFs}`;
       osd(t('moreSpins', { n }), 1400); await wait(1200);
     },
@@ -192,7 +191,9 @@
     async pauseRespin(e) {
       Reels.clear(); Reels.freeze(e.frozenReels); osd(t('pause'));
       const spin = [0, 1, 2, 3, 4].filter(r => !e.frozenReels.includes(r));
-      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: S.inBonus ? 'FR0' : 'BR0', onStop: () => sfx('stop') });
+      AUDIO.loop('reel_loop');
+      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: S.inBonus ? 'FR0' : 'BR0', onStop: stopReel(e.board) });
+      AUDIO.stop('reel_loop');
       if (e.wins && e.wins.length) await showWins(e.wins, true);
       if (e.win > 0) { popup('+' + fmt(winMoney(e.win))); sfx('win'); await wait(500); }
       else { osd(''); Reels.unfreeze(); await wait(200); }
@@ -212,14 +213,16 @@
       await Reels.spin(e.board, { reverse: true, turbo: S.turbo, fast: fast(), strip: 'FR0' });
       $('tracking').classList.add('hide');
       await showWins(e.wins, true);
-      popup(`${fmt(winMoney(e.win / e.mult))} ×${e.mult} = ${fmt(winMoney(e.win))}`); sfx('big');
+      popup(`${fmt(winMoney(e.win / e.mult))} ×${e.mult} = ${fmt(winMoney(e.win))}`); sfx('win_m');
       await wait(1400);
     },
     async secondTake(e) {
-      Reels.clear(); osd(t('secondTake')); Reels.freeze(e.frozenReels);
+      Reels.clear(); osd(t('secondTake')); sfx('second_take'); Reels.freeze(e.frozenReels);
       await wait(500);
       const spin = [0, 1, 2, 3, 4].filter(r => !e.frozenReels.includes(r));
-      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: 'FR0', onStop: () => sfx('stop') });
+      AUDIO.loop('reel_loop');
+      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: 'FR0', onStop: stopReel(e.board) });
+      AUDIO.stop('reel_loop');
       if (e.wins && e.wins.length) await showWins(e.wins, true);
       popup(e.win > 0 ? `+${fmt(winMoney(e.win))} (×${e.mult})` : '');
       if (e.win > 0) sfx('win');
@@ -227,7 +230,7 @@
       Reels.unfreeze(); osd('');
     },
     async rewindMult(e) {
-      if (e.mult !== S.mult) { S.mult = e.mult; osd(t('multUp', { n: e.mult }), 1200); }
+      if (e.mult !== S.mult) { S.mult = e.mult; osd(t('multUp', { n: e.mult }), 1200); sfx('rew_mult'); }
       $('multVal').textContent = '×' + e.mult;
       const b = $('multBox'); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse');
       await wait(500);
@@ -236,14 +239,16 @@
       Reels.unfreeze(); osd('');
       const total = S.roundWin || e.amount;
       const tier = tierOf(winMoney(total) / tierBase());
+      AUDIO.setMusic(null); AUDIO.stinger('stg_shift_over');
       await banner(tier ? t(tier) : t('shiftOver'), fmt(winMoney(total)), 3500);
-      S.inBonus = false;
+      S.inBonus = false; AUDIO.setMusic('mus_base');
       ['fsBox', 'multBox', 'tapeLog'].forEach(id => $(id).classList.add('hide'));
       tapeCounter(0); updateUI();
     },
     async wincap(e) {
-      S.capped = true; Reels.unfreeze(); osd('');
+      S.capped = true; Reels.unfreeze(); osd(''); AUDIO.setMusic(null); AUDIO.stinger('stg_maxwin');
       particles(40); await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000, { img: 'assets/overlay/ov_maxwin.webp' });
+      AUDIO.setMusic(SCENE_MUSIC());
     },
     async finalWin(e) {
       S.roundWin = e.amount;
@@ -269,7 +274,7 @@
     // one line at a time (max 6), then back to all
     for (const w of wins.slice(0, 6)) {
       if (S.skip) break;
-      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions); Reels.lines([w]);
+      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions); Reels.lines([w]); sfx('line_tick');
       popup(`${Reels.LABEL[w.symbol] || w.symbol} ×${w.kind}  ${fmt(winMoney(w.win))}`);
       await wait(420);
     }
@@ -287,25 +292,29 @@
   }
 
   function bigWin(amount) {
-    const el = $('bigWin'); el.classList.remove('hide'); sfx('big'); del('wow'); playVideo($('bigVideo')); particles();
+    const el = $('bigWin'); el.classList.remove('hide'); AUDIO.stinger('bw_tier'); AUDIO.setMusic('mus_bigwin'); del('wow'); playVideo($('bigVideo')); particles();
     $('bigBadge').className = tierOf(amount / tierBase()) || 'bigWin';
     const dec = I18N.decimalsFor(amount, I18N.currency());
     const base = tierBase();
-    if (fast()) { $('bigTitle').textContent = t(tierOf(amount / base)); $('bigAmt').textContent = money(amount, dec); el.classList.add('hide'); return Promise.resolve(); }
+    if (fast()) { $('bigTitle').textContent = t(tierOf(amount / base)); $('bigAmt').textContent = money(amount, dec); el.classList.add('hide'); AUDIO.setMusic(SCENE_MUSIC()); return Promise.resolve(); }
+    AUDIO.loop('count_loop'); let lastTier = null;
     return new Promise(res => {
       const dur = Math.min(6000, 1500 + Math.log10(amount / base) * 1500) * (S.turbo ? 0.5 : 1);
       const t0 = performance.now(); let skipped = false, ended = false;
-      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} res(); };
+      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} AUDIO.setMusic(SCENE_MUSIC()); res(); };
       const onTap = () => { if (!skipped) { skipped = true; } else end(); };
       const onKey = e => { if (e.code === 'Space') { e.preventDefault(); onTap(); } };
       el.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey);
       (function frame(now) {
         const k = skipped ? 1 : Math.min(1, (now - t0) / dur);
         const v = amount * (1 - Math.pow(1 - k, 2));
-        $('bigTitle').textContent = t(tierOf(v / base) || 'bigWin');
+        const tier = tierOf(v / base) || 'bigWin';
+        if (lastTier && tier !== lastTier) AUDIO.sfx('bw_tier');
+        lastTier = tier;
+        $('bigTitle').textContent = t(tier);
         $('bigAmt').textContent = money(v, dec);
         if (k < 1) requestAnimationFrame(frame);
-        else setTimeout(end, S.auto ? 900 : 2200);
+        else { AUDIO.stop('count_loop'); AUDIO.sfx('bw_end'); setTimeout(end, S.auto ? 900 : 2200); }
       })(t0);
     });
   }
@@ -327,8 +336,8 @@
     if (S.busy) { slam(); return; }
     mode = mode || baseMode();
     const c = cost(mode);
-    if (S.balance + 1e-9 < c) { toast(t('noFunds')); stopAuto(); return; }
-    S.busy = true; S.skip = false; Reels.clear(); popup(''); sfx('click');
+    if (S.balance + 1e-9 < c) { toast(t('noFunds')); sfx('nofunds'); stopAuto(); return; }
+    S.busy = true; S.skip = false; Reels.clear(); popup(''); sfx('spin_start');
     const t0 = performance.now();
     const before = S.balance; S.balance -= c; updateUI();
     let res;
@@ -359,7 +368,7 @@
   function netError(e) {
     stopAuto();
     const code = (e && e.code) || 'ERR_GEN';
-    toast(code === 'ERR_IPB' ? t('noFunds') : `${t('netError')} (${code})`, 3500);
+    toast(code === 'ERR_IPB' ? t('noFunds') : `${t('netError')} (${code})`, 3500); sfx(code === 'ERR_IPB' ? 'nofunds' : 'error'); AUDIO.stopLoops();
     console.warn('rgs', code, e && e.message);
   }
 
@@ -391,7 +400,7 @@
       const cover = { bonus: 'buy_night', double: 'buy_double', director: 'buy_director' }[m];
       b.innerHTML = `<img src="assets/ui/${cover}.webp" alt=""><div><b>${t('mode_' + m)}</b><span>${I18N.socialize(t('desc_' + m))}</span><em>${t('price')}: ${fmt(cost(m))} (${MD[m].cost}×)</em></div>`;
       b.addEventListener('click', () => {
-        if (S.balance + 1e-9 < cost(m)) { toast(t('noFunds')); return; }
+        if (S.balance + 1e-9 < cost(m)) { toast(t('noFunds')); sfx('nofunds'); return; }
         $('buyConfirmText').textContent = t('buyFor', { name: t('mode_' + m), price: fmt(cost(m)) });
         $('buyConfirm').classList.remove('hide'); $('buyConfirm').dataset.mode = m;
       });
@@ -483,7 +492,7 @@
       };
     };
     $('splashBtn').disabled = false; $('splashBtn').textContent = t('play');
-    $('splashBtn').onclick = () => { $('splash').classList.add('hide'); show(false); };
+    $('splashBtn').onclick = () => { $('splash').classList.add('hide'); AUDIO.unlock(); AUDIO.sfx('splash_play'); show(false); };
   }
 
   // ---------- boot ----------
@@ -505,11 +514,12 @@
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');
     // splash counter as a tape counter
     let n = 0; const ctr = setInterval(() => { n = Math.min(9999, n + 137); $('loadCounter').textContent = String(n).padStart(4, '0'); }, 40);
+    const audioReady = AUDIO.init().then(() => AUDIO.preload(AUDIO_CORE));
     if (S.replay) { await preload(); clearInterval(ctr); return startReplay(); }
     let auth;
     try { auth = await api.authenticate(); }
     catch (e) { clearInterval(ctr); return fatal(`${t('errAuth')} (${e.code || 'ERR_GEN'})`); }
-    await preload(); clearInterval(ctr); $('loadCounter').textContent = '0000';
+    await preload(); await Promise.race([audioReady, new Promise(r => setTimeout(r, 4000))]); clearInterval(ctr); $('loadCounter').textContent = '0000';
     const cfg = auth.config || {};
     S.jur = cfg.jurisdiction || {};
     if (S.jur.socialCasino) I18N.setSocial(true);
@@ -532,6 +542,7 @@
     $('splashBtn').disabled = false; $('splashBtn').textContent = t('play');
     $('splashBtn').onclick = async () => {
       $('splash').classList.add('hide');
+      AUDIO.unlock(); AUDIO.sfx('splash_play'); AUDIO.setMusic('mus_base'); AUDIO.preload();
       if (S.pendingRound) {
         const r = S.pendingRound; S.pendingRound = null;
         S.busy = true; updateUI(); toast(t('roundRestored'));
@@ -543,19 +554,21 @@
   }
 
   // ---------- input ----------
+  // the audio context may only start inside a gesture; any first tap or key does it
+  ['pointerdown', 'keydown', 'touchend'].forEach(ev => document.addEventListener(ev, () => AUDIO.unlock(), { passive: true }));
   function click(id, fn) {
     $(id).addEventListener('click', ev => { if (ev.detail > 0) $(id).blur(); fn(ev); });
   }
   click('spinBtn', () => { if (S.auto > 0 && !S.busy) return stopAuto(); spin(); });
   click('betMinus', () => { if (S.betIdx > 0) { S.betIdx--; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
   click('betPlus', () => { if (S.betIdx < S.bets.length - 1) { S.betIdx++; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
-  click('anteBtn', () => { S.ante = !S.ante; sfx('click'); updateUI(); });
-  click('turboBtn', () => { S.turbo = !S.turbo; updateUI(); });
-  click('soundBtn', () => { S.muted = !S.muted; updateUI(); });
-  click('menuBtn', () => { buildRules(); dlg('rulesDlg', true); });
-  click('buyBtn', () => { if (S.busy) return; buildBuy(); dlg('buyDlg', true); });
-  click('autoBtn', () => { if (S.auto > 0) return stopAuto(); if (!S.busy) dlg('autoDlg', true); });
-  click('buyYes', () => { const m = $('buyConfirm').dataset.mode; dlg('buyDlg', false); spin(m); });
+  click('anteBtn', () => { S.ante = !S.ante; sfx('ui_toggle'); updateUI(); });
+  click('turboBtn', () => { S.turbo = !S.turbo; sfx('ui_toggle'); updateUI(); });
+  click('soundBtn', () => { S.muted = !S.muted; AUDIO.setMuted(S.muted); sfx('ui_toggle'); updateUI(); });
+  click('menuBtn', () => { buildRules(); dlg('rulesDlg', true); sfx('ui_open'); });
+  click('buyBtn', () => { if (S.busy) return; buildBuy(); dlg('buyDlg', true); sfx('ui_open'); });
+  click('autoBtn', () => { if (S.auto > 0) return stopAuto(); if (!S.busy) { dlg('autoDlg', true); sfx('ui_open'); } });
+  click('buyYes', () => { const m = $('buyConfirm').dataset.mode; dlg('buyDlg', false); sfx('ui_click'); spin(m); });
   click('buyNo', () => $('buyConfirm').classList.add('hide'));
   click('autoStart', () => {
     const on = $('autoCounts').querySelector('.chip.on');
@@ -564,7 +577,7 @@
     dlg('autoDlg', false); spin();
   });
   click('errBtn', () => location.reload());
-  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', ev => { if (ev.detail > 0) b.blur(); dlg(openDlg, false); }));
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', ev => { if (ev.detail > 0) b.blur(); dlg(openDlg, false); sfx('ui_click'); }));
   $('dlgBack').addEventListener('click', () => dlg(openDlg, false));
   document.addEventListener('keydown', e => {
     if (e.code !== 'Space') return;

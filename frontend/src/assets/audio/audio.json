@@ -1,0 +1,158 @@
+{
+ "mus_base": {
+  "kind": "music",
+  "vol": 0.55,
+  "dur": 21.333,
+  "loop": 21.333333
+ },
+ "mus_bonus": {
+  "kind": "music",
+  "vol": 0.55,
+  "dur": 16.0,
+  "loop": 16.0
+ },
+ "mus_bigwin": {
+  "kind": "music",
+  "vol": 0.6,
+  "dur": 7.742,
+  "loop": 7.741935
+ },
+ "stg_bonus_intro": {
+  "kind": "stinger",
+  "vol": 0.8,
+  "dur": 3.6
+ },
+ "stg_shift_over": {
+  "kind": "stinger",
+  "vol": 0.8,
+  "dur": 3.4
+ },
+ "stg_maxwin": {
+  "kind": "stinger",
+  "vol": 0.85,
+  "dur": 5.5
+ },
+ "bw_tier": {
+  "kind": "stinger",
+  "vol": 0.7,
+  "dur": 1.6
+ },
+ "bw_end": {
+  "kind": "stinger",
+  "vol": 0.7,
+  "dur": 1.8
+ },
+ "ui_click": {
+  "kind": "sfx",
+  "vol": 0.5,
+  "dur": 0.08
+ },
+ "ui_toggle": {
+  "kind": "sfx",
+  "vol": 0.5,
+  "dur": 0.16
+ },
+ "ui_open": {
+  "kind": "sfx",
+  "vol": 0.45,
+  "dur": 0.3
+ },
+ "splash_play": {
+  "kind": "sfx",
+  "vol": 0.7,
+  "dur": 1.3
+ },
+ "spin_start": {
+  "kind": "sfx",
+  "vol": 0.5,
+  "dur": 0.38
+ },
+ "reel_loop": {
+  "kind": "sfx",
+  "vol": 0.28,
+  "dur": 0.96,
+  "loop": 0.96
+ },
+ "reel_stop": {
+  "kind": "sfx",
+  "vol": 0.55,
+  "dur": 0.18
+ },
+ "reel_stop_s": {
+  "kind": "sfx",
+  "vol": 0.7,
+  "dur": 0.75
+ },
+ "antic_loop": {
+  "kind": "sfx",
+  "vol": 0.5,
+  "dur": 2.0,
+  "loop": 2.0
+ },
+ "win_s": {
+  "kind": "sfx",
+  "vol": 0.55,
+  "dur": 0.7
+ },
+ "win_m": {
+  "kind": "sfx",
+  "vol": 0.6,
+  "dur": 1.1
+ },
+ "line_tick": {
+  "kind": "sfx",
+  "vol": 0.4,
+  "dur": 0.14
+ },
+ "count_loop": {
+  "kind": "sfx",
+  "vol": 0.35,
+  "dur": 0.4,
+  "loop": 0.4
+ },
+ "pause": {
+  "kind": "sfx",
+  "vol": 0.7,
+  "dur": 0.6
+ },
+ "rec_beep": {
+  "kind": "sfx",
+  "vol": 0.3,
+  "dur": 0.35
+ },
+ "rewind": {
+  "kind": "sfx",
+  "vol": 0.6,
+  "dur": 1.9
+ },
+ "rew_mult": {
+  "kind": "sfx",
+  "vol": 0.6,
+  "dur": 0.8
+ },
+ "second_take": {
+  "kind": "sfx",
+  "vol": 0.65,
+  "dur": 0.35
+ },
+ "retrigger": {
+  "kind": "sfx",
+  "vol": 0.6,
+  "dur": 1.0
+ },
+ "trigger": {
+  "kind": "sfx",
+  "vol": 0.7,
+  "dur": 1.6
+ },
+ "nofunds": {
+  "kind": "sfx",
+  "vol": 0.3,
+  "dur": 0.4
+ },
+ "error": {
+  "kind": "sfx",
+  "vol": 0.45,
+  "dur": 0.8
+ }
+}
