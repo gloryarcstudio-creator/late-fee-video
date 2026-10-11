@@ -1,0 +1,124 @@
+{
+"bg_land": 312,
+"bg_bonus": 349,
+"ov_bonus_intro": 145,
+"ov_bigwin": 55,
+"bg_land_m": 93,
+"bg_bonus_m": 104,
+"tile": 559,
+"cover": 472,
+"ui_spin": 149,
+"ui_round": 121,
+"ui_field": 30,
+"ui_wide": 42,
+"ui_panel": 130,
+"ui_counter": 33,
+"ui_side": 75,
+"ui_tag": 81,
+"buy_night": 83,
+"buy_double": 78,
+"buy_director": 76,
+"logo": 103,
+"maxwin": 185,
+"badge_big": 73,
+"badge_mega": 59,
+"badge_epic": 72,
+"badge_cult": 52,
+"del_idle": 37,
+"del_lean": 36,
+"del_cheer": 37,
+"del_wow": 37,
+"del_pause": 38,
+"del_rew": 38,
+"del_bored": 38,
+"del_still_box": [
+259,
+148,
+764,
+1455
+],
+"del_still_ar": 0.3864,
+"strips": {
+"del_idle": {
+"frames": 48,
+"w": 192,
+"h": 480,
+"fps": 12,
+"kb": 925,
+"box": [
+190,
+100,
+559,
+1023
+]
+},
+"del_lean": {
+"frames": 24,
+"w": 171,
+"h": 480,
+"fps": 12,
+"kb": 451,
+"box": [
+196,
+106,
+531,
+1049
+]
+},
+"del_cheer": {
+"frames": 24,
+"w": 182,
+"h": 480,
+"fps": 12,
+"kb": 472,
+"box": [
+194,
+100,
+543,
+1022
+]
+},
+"del_wow": {
+"frames": 24,
+"w": 201,
+"h": 480,
+"fps": 12,
+"kb": 472,
+"box": [
+168,
+100,
+555,
+1023
+]
+},
+"del_rew": {
+"frames": 24,
+"w": 169,
+"h": 480,
+"fps": 12,
+"kb": 466,
+"box": [
+196,
+98,
+537,
+1067
+]
+}
+},
+"fx_popcorn_1": 5,
+"fx_popcorn_2": 5,
+"fx_popcorn_3": 5,
+"fx_popcorn_4": 6,
+"fx_sparkle_1": 4,
+"fx_sparkle_2": 4,
+"fx_sparkle_3": 5,
+"fx_sparkle_4": 4,
+"fx_tape_1": 3,
+"fx_tape_2": 4,
+"fx_tape_3": 3,
+"fx_tape_4": 5,
+"fx_ticket_1": 5,
+"fx_ticket_2": 5,
+"fx_ticket_3": 4,
+"fx_ticket_4": 5
+}

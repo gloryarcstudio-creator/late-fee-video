@@ -8,9 +8,9 @@
 </head>
 <body>
 <div id="stage" class="land">
-  <div id="bg"><div class="shelf s1"></div><div class="shelf s2"></div><div class="neon">OPEN</div></div>
+  <div id="bg"><div class="bgl"></div><div class="bgb"></div></div>
 
-  <div id="del" class="ph">DEL<small>idle</small></div>
+  <div id="del" data-state="idle"><div class="anim" data-anim="idle"></div><div class="anim" data-anim="lean"></div><div class="anim" data-anim="cheer"></div><div class="anim" data-anim="wow"></div><div class="anim" data-anim="rew"></div><div class="still" data-anim="pause"></div><div class="still" data-anim="bored"></div></div>
 
   <div id="tape"><span class="lbl" data-t="tape"></span><span id="tapeVal">0000</span></div>
 
@@ -38,7 +38,7 @@
     <div class="field" id="balField"><span class="lbl" data-t="balance"></span><b id="balVal">—</b></div>
     <div class="field" id="betField">
       <button id="betMinus" class="btn round" aria-label="">−</button>
-      <div><span class="lbl" data-t="bet"></span><b id="betVal">—</b></div>
+      <div><span class="lbl" data-t="bet"></span><b id="betVal">—</b></div><span id="anteTag" class="hide"></span>
       <button id="betPlus" class="btn round" aria-label="">+</button>
     </div>
     <div class="field" id="winField"><span class="lbl" data-t="win"></span><b id="winVal">—</b></div>
@@ -49,11 +49,12 @@
     <button id="spinBtn" class="btn" aria-label="">▶</button>
   </div>
 
+  <div id="fx"></div>
   <div id="toast" class="hide"></div>
 
   <!-- overlays -->
-  <div id="bigWin" class="overlay hide"><div class="ov-inner"><div id="bigTitle"></div><div id="bigAmt"></div><small data-t="tapToSkip"></small></div></div>
-  <div id="banner" class="overlay hide"><div class="ov-inner"><div id="bannerTitle"></div><div id="bannerSub"></div><small data-t="tapToContinue"></small></div></div>
+  <div id="bigWin" class="overlay hide"><video id="bigVideo" muted loop playsinline preload="none"><source src="assets/overlay/ov_bigwin.mp4" type="video/mp4"><source src="assets/overlay/ov_bigwin.webm" type="video/webm"></video><div class="ov-inner"><div id="bigBadge"></div><div id="bigTitle"></div><div id="bigAmt"></div><small data-t="tapToSkip"></small></div></div>
+  <div id="banner" class="overlay hide"><video id="bannerVideo" class="hide" muted playsinline preload="none"></video><img id="bannerImg" class="hide" alt=""><div class="ov-inner"><div id="bannerTitle"></div><div id="bannerSub"></div><small data-t="tapToContinue"></small></div></div>
 </div>
 
 <!-- dialogs (outside stage scaling for readability) -->
@@ -76,6 +77,7 @@
 <div id="rulesDlg" class="dlg wide hide" role="dialog"><div id="rulesBody"></div><button class="btn close" data-close aria-label="">✕</button></div>
 
 <div id="splash"><div class="blue">
+  <div id="splashLogo"></div>
   <div class="osd-big">PLAY ▶</div>
   <div class="title">LATE FEE VIDEO</div>
   <div id="loadCounter">0000</div>

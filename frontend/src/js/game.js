@@ -44,7 +44,34 @@
     clearTimeout(osd._t); if (text && ms) osd._t = setTimeout(() => el.classList.remove('show'), ms * (S.turbo ? 0.5 : 1));
   }
   function popup(text) { const el = $('spinWin'); el.textContent = text; el.classList.toggle('hide', !text); }
-  function del(state) { const el = $('del'); el.className = 'ph ' + state; el.querySelector('small').textContent = state; }
+  // Del: strips for idle/lean/cheer/wow/rew, stills for pause/bored; one-shots fall back to idle on animationend
+  const DEL_MAP = { spin: 'idle', rewind: 'rew' }, DEL_ONESHOT = { cheer: 1, wow: 1, rew: 1 };
+  function del(state) {
+    const el = $('del'); state = DEL_MAP[state] || state;
+    if (!el.querySelector(`[data-anim="${state}"]`)) state = 'idle';
+    el.dataset.state = state;
+    const l = el.querySelector(`.anim[data-anim="${state}"]`);
+    if (l) { l.style.animation = 'none'; void l.offsetWidth; l.style.animation = ''; }
+  }
+  $('del').addEventListener('animationend', e => { const a = e.target.dataset.anim; if (DEL_ONESHOT[a] && $('del').dataset.state === a) del('idle'); });
+
+  // win particles (tickets, popcorn, tape curls, sparkles)
+  const FX = ['ticket', 'popcorn', 'tape', 'sparkle'].flatMap(k => [1, 2, 3, 4].map(i => `assets/fx/${k}_${i}.webp`));
+  function particles(n = 28) {
+    if (fast()) return;
+    const box = $('fx'); const W = $('stage').classList.contains('port') ? 720 : 1280;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div'); p.className = 'p';
+      p.style.backgroundImage = `url(${FX[Math.floor(Math.random() * FX.length)]})`;
+      p.style.left = Math.random() * W + 'px'; p.style.setProperty('--d', (1.6 + Math.random() * 1.4) + 's');
+      p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px'); p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.animationDelay = (Math.random() * 0.8) + 's';
+      p.addEventListener('animationend', () => p.remove()); box.appendChild(p);
+    }
+  }
+  // H.264 everywhere Stake runs; the VP9 copy covers builds without it (open-source Chromium)
+  function vidSrc(base) { const v = document.createElement('video'); return base + (v.canPlayType('video/mp4; codecs="avc1.42E01E"') ? '.mp4' : '.webm'); }
+  function playVideo(v) { try { v.muted = true; v.currentTime = 0; const r = v.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
   function tapeCounter(amount100) {
     $('tapeVal').textContent = amount100 > 0 ? fmt(winMoney(amount100)) : '0000';
   }
@@ -94,7 +121,7 @@
     $('balVal').textContent = S.ready ? fmt(S.balance) : '—';
     $('betVal').textContent = S.ready ? fmt(cost(baseMode())) + (S.ante ? ' (×3)' : '') : '—';
     $('anteState').textContent = t(S.ante ? 'anteOn' : 'anteOff');
-    $('anteBtn').classList.toggle('on', S.ante);
+    $('anteBtn').classList.toggle('on', S.ante); $('anteTag').classList.toggle('hide', !S.ante);
     const lock = S.busy || S.auto > 0;
     ['betMinus', 'betPlus', 'buyBtn', 'anteBtn'].forEach(id => { $(id).disabled = lock || !S.ready; });
     $('betMinus').disabled ||= S.betIdx <= 0;
@@ -149,7 +176,7 @@
       tapeCounter(S.roundWin || 0);
       updateUI();
       if (S.auto && S.autoCfg && S.autoCfg.stopBonus) S.autoStopAfter = true;
-      await banner(t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 2600);
+      await banner(t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 3000, { video: vidSrc('assets/overlay/ov_bonus_intro') });
     },
     async updateFreeSpin(e) { S.fsTotal = e.total; $('fsVal').textContent = `${Math.min(e.amount + 1, e.total)}/${e.total}`; },
     async freeSpinRetrigger(e) {
@@ -216,7 +243,7 @@
     },
     async wincap(e) {
       S.capped = true; Reels.unfreeze(); osd('');
-      await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000);
+      particles(40); await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000, { img: 'assets/overlay/ov_maxwin.webp' });
     },
     async finalWin(e) {
       S.roundWin = e.amount;
@@ -249,21 +276,26 @@
     Reels.clear(); Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions)); Reels.lines(wins);
   }
 
-  function banner(title, sub, ms) {
+  function banner(title, sub, ms, media) {
     $('bannerTitle').textContent = title; $('bannerSub').textContent = sub;
-    const el = $('banner'); el.classList.remove('hide');
-    return waitTap(el, ms).then(() => el.classList.add('hide'));
+    const el = $('banner'), v = $('bannerVideo'), im = $('bannerImg');
+    v.classList.toggle('hide', !(media && media.video)); im.classList.toggle('hide', !(media && media.img));
+    if (media && media.video) { if (v.getAttribute('src') !== media.video) v.src = media.video; playVideo(v); }
+    if (media && media.img) im.src = media.img;
+    el.classList.remove('hide');
+    return waitTap(el, ms).then(() => { el.classList.add('hide'); try { v.pause(); } catch (e) {} });
   }
 
   function bigWin(amount) {
-    const el = $('bigWin'); el.classList.remove('hide'); sfx('big'); del('wow');
+    const el = $('bigWin'); el.classList.remove('hide'); sfx('big'); del('wow'); playVideo($('bigVideo')); particles();
+    $('bigBadge').className = tierOf(amount / tierBase()) || 'bigWin';
     const dec = I18N.decimalsFor(amount, I18N.currency());
     const base = tierBase();
     if (fast()) { $('bigTitle').textContent = t(tierOf(amount / base)); $('bigAmt').textContent = money(amount, dec); el.classList.add('hide'); return Promise.resolve(); }
     return new Promise(res => {
       const dur = Math.min(6000, 1500 + Math.log10(amount / base) * 1500) * (S.turbo ? 0.5 : 1);
       const t0 = performance.now(); let skipped = false, ended = false;
-      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); res(); };
+      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} res(); };
       const onTap = () => { if (!skipped) { skipped = true; } else end(); };
       const onKey = e => { if (e.code === 'Space') { e.preventDefault(); onTap(); } };
       el.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey);
@@ -356,7 +388,8 @@
     const list = $('buyList'); list.textContent = '';
     BUY_MODES.forEach(m => {
       const b = document.createElement('button'); b.className = 'btn buy-item'; b.dataset.mode = m;
-      b.innerHTML = `<b>${t('mode_' + m)}</b><span>${I18N.socialize(t('desc_' + m))}</span><em>${t('price')}: ${fmt(cost(m))} (${MD[m].cost}×)</em>`;
+      const cover = { bonus: 'buy_night', double: 'buy_double', director: 'buy_director' }[m];
+      b.innerHTML = `<img src="assets/ui/${cover}.webp" alt=""><div><b>${t('mode_' + m)}</b><span>${I18N.socialize(t('desc_' + m))}</span><em>${t('price')}: ${fmt(cost(m))} (${MD[m].cost}×)</em></div>`;
       b.addEventListener('click', () => {
         if (S.balance + 1e-9 < cost(m)) { toast(t('noFunds')); return; }
         $('buyConfirmText').textContent = t('buyFor', { name: t('mode_' + m), price: fmt(cost(m)) });
@@ -454,8 +487,11 @@
   }
 
   // ---------- boot ----------
-  const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`).concat(['assets/scene/tv_frame.webp']);
-  function preload(ms = 8000) {
+  const PORT0 = window.innerHeight > window.innerWidth * 1.05;
+  const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`)
+    .concat(['assets/scene/tv_frame.webp', PORT0 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', 'assets/del/del_idle_strip.webp', 'assets/promo/logo_emblem.webp'],
+      ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
+  function preload(ms = 12000) {
     const one = u => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = u; });
     return Promise.race([Promise.all(ART.map(one)), new Promise(r => setTimeout(r, ms))]);
   }
