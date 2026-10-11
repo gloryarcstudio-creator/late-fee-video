@@ -68,7 +68,8 @@
 ## 4. Проверка
 `node frontend/tools/qa_audio.js http://127.0.0.1:8765` (на mock RGS): контекст запускается после сплэша, базовые буферы декодированы, в раунде есть старт/петля/стопы/выигрыш, anticipation-петля, в бонусе интро → mus_bonus → SHIFT OVER → mus_base, перемотка и запись, big win (стингер, музыка, счётчик, финал, возврат), mute/unmute с сохранением, консоль чистая, внешних запросов нет. 13/13 PASS в Chromium.
 
-## 5. Промпты для внешней генерации (если захотим заменить синтез)
+## 5. Промпты для внешней генерации
+Полный список с именами файлов, спецификациями и порядком приёмки: `audio/batch_01_audio.md`. Краткая версия:
 Имена файлов и длительности как в §2. Для петель просить «seamless loop, exact N bars at BPM»; для sfx — «mono, dry, no reverb tail beyond X s».
 - mus_base: «1989 synth-pop, 90 BPM, A minor, warm analog pad, octave bass, soft drum machine, dreamy lead with vibrato, VHS tape warble, late-night video store, seamless 8-bar loop».
 - mus_bonus: «same palette, 120 BPM, driving, clap on 2 and 4, open hats, arpeggios, neon night shift energy, seamless 8-bar loop».
