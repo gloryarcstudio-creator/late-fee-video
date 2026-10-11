@@ -30,8 +30,8 @@ TARGET_RTP = 0.96
 
 
 def scatter_trigger_weights(reels, scatter="S"):
-    """Natural 3/4/5-scatter frequency ratio for a reel set (one scatter max per reel)."""
-    probs = [sum(1 for s in reel if s == scatter) / len(reel) for reel in reels]
+    """Natural 3/4/5-scatter frequency ratio for a reel set (one scatter max per reel, 3 visible rows)."""
+    probs = [3 * sum(1 for s in reel if s == scatter) / len(reel) for reel in reels]
     weights = {}
     for k in (3, 4, 5):
         total = 0.0

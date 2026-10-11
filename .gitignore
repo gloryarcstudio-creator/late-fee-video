@@ -2,4 +2,8 @@ node_modules/
 *.zst
 __pycache__/
 .DS_Store
-math/sdk/late_fee_video/library/
+math/sdk/late_fee_video/library/*
+!math/sdk/late_fee_video/library/publish_files/
+!math/sdk/late_fee_video/library/configs/
+!math/sdk/late_fee_video/library/stats_summary.json
+!math/sdk/late_fee_video/library/weight_summary.json
