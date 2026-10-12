@@ -503,7 +503,17 @@
     .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}del_idle_strip.webp`, 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
   // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
-  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); }, 600); }
+  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); }, 600); }
+  // symbol idle loops (batch 05): optional; nothing happens without assets/symbols/idle/idle.json
+  async function symIdle() {
+    try {
+      const dir = `assets/symbols/idle/${DEL_M ? 'm/' : ''}`;
+      const r = await fetch('assets/symbols/idle/idle.json'); if (!r.ok) return;
+      const clips = await r.json(); if (!Object.keys(clips).length) return;
+      await Promise.all(Object.keys(clips).map(k => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = `${dir}sym_${k}_strip.webp`; })));
+      if (!fast()) Reels.idle({ dir, clips });
+    } catch (e) { /* no idle loops */ }
+  }
   function preload(ms = 12000) {
     const one = u => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = u; });
     return Promise.race([Promise.all(ART.map(one)), new Promise(r => setTimeout(r, ms))]);
