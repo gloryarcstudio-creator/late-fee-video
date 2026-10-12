@@ -6,6 +6,8 @@
 - `tools/qa.js http://127.0.0.1:8765 OUT [logic|shots|states|all]` — Playwright checks and screenshots.
 - `tools/qa_audio.js http://127.0.0.1:8765` — real-time audio scene checks (music per scene, loops, mute).
 - `tools/audio/synth.py src/assets/audio [names]` — regenerate the sounds and `audio.json` (see AUDIO.md).
+- `tools/scan_books.py PUBLISH_DIR OUT` — full math check (RTP/max/hit per mode, books vs lookup tables, event types) and a real-book set for the mock.
+- `tools/qa_stage9.js http://127.0.0.1:PORT OUT OUT/scan.json [suites]` — pre-submission checklist by Engine ID (RGS, bets, restore, social, replay, currencies, 16 languages, console, external hosts).
 - `tools/build_fe.py N [--no-demo]` → `fe_build/`; `tools/pack_fe.sh N` → `dist/` zip (<30 MB parts).
 
 Launch with RGS: `index.html?sessionID=sess-ok&rgs_url=http://127.0.0.1:8765&lang=en&currency=USD`. Without params the game runs the local demo; add `?dev=1` (or `#dev`) for scenario buttons.

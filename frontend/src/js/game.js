@@ -28,7 +28,7 @@
     return new Promise(res => {
       let done = false;
       const fin = () => { if (done) return; done = true; el.removeEventListener('pointerdown', fin); document.removeEventListener('keydown', key); res(); };
-      const key = e => { if (e.code === 'Space') { e.preventDefault(); fin(); } };
+      const key = e => { if (e.code === 'Space') { e.preventDefault(); if (!S.jur.disabledSpacebar) fin(); } };
       el.addEventListener('pointerdown', fin); document.addEventListener('keydown', key);
       setTimeout(fin, S.auto ? ms * 0.6 : ms);
     });
@@ -308,7 +308,7 @@
       const t0 = performance.now(); let skipped = false, ended = false;
       const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} AUDIO.setMusic(SCENE_MUSIC()); res(); };
       const onTap = () => { if (!skipped) { skipped = true; } else end(); };
-      const onKey = e => { if (e.code === 'Space') { e.preventDefault(); onTap(); } };
+      const onKey = e => { if (e.code === 'Space') { e.preventDefault(); if (!S.jur.disabledSpacebar) onTap(); } };
       el.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey);
       (function frame(now) {
         const k = skipped ? 1 : Math.min(1, (now - t0) / dur);
@@ -533,7 +533,7 @@
     S.jur = cfg.jurisdiction || {};
     if (S.jur.socialCasino) I18N.setSocial(true);
     I18N.setCurrency(auth.balance.currency || P.currency || 'USD');
-    I18N.apply();
+    I18N.apply(); document.documentElement.lang = I18N.lang();
     S.balance = auth.balance.amount / M;
     S.bets = (cfg.betLevels || []).map(v => v / M);
     if (!S.bets.length) return fatal(t('errAuth') + ' (betLevels)');

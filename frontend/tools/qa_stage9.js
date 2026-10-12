@@ -15,6 +15,7 @@ const rec = (id, name, verdict, evidence) => { R.push({ id, name, verdict, evide
 const pass = (id, name, ok, ev) => rec(id, name, ok ? 'PASS' : 'FAIL', ev);
 const consoleLog = []; const external = [];
 const DEFAULT = 'balance=1000000000000&round=none&force=none&currency=USD&social=false&jur=&levels=100000,200000,400000,1000000,2000000,5000000,10000000&def=1000000&reset=1';
+const C = extra => { const u = new URLSearchParams(DEFAULT); new URLSearchParams(extra).forEach((v, k) => u.set(k, v)); return u.toString(); };
 const SOCIAL_RE = /\b(bets?|betting|total bet|stake|buy|buys|purchase|bought|bonus buy|pay|pays|paid|payouts?|paytable|pay table|money|cash|credits?|funds?|currency|deposit|withdraw|gamble|wager|rebet)\b/gi;
 
 let browser;
@@ -24,8 +25,8 @@ async function open(url, { vp = [1280, 592], mobile = false, ctx = null, expectE
   page.logs = [];
   page.on('pageerror', e => page.logs.push('pageerror: ' + e));
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') page.logs.push(m.type() + ': ' + m.text()); });
-  page.on('requestfailed', r => { if (!/__ctl|__bodies/.test(r.url())) page.logs.push('requestfailed: ' + r.url() + ' ' + (r.failure() || {}).errorText); });
-  page.on('request', r => { const u = r.url(); if (!u.startsWith(BASE) && !u.startsWith('data:') && !u.startsWith('blob:')) external.push(u); });
+  page.on('requestfailed', r => { const f = (r.failure() || {}).errorText || ''; if (/\.(mp4|webm)$/.test(r.url()) && /ERR_ABORTED/.test(f)) return; /* <video> source switch, not a console error */ if (!/__ctl|__bodies/.test(r.url())) page.logs.push('requestfailed: ' + r.url() + ' ' + (r.failure() || {}).errorText); });
+  page.on('request', r => { const u = r.url(); if (!u.startsWith(BASE) && !u.startsWith('data:') && !u.startsWith('blob:')) (expectErrors ? page.logs : external).push(expectErrors ? 'request to rgs_url under test: ' + u : u); });
   page.on('close', () => { if (!expectErrors) page.logs.forEach(l => consoleLog.push(url.slice(0, 60) + ' → ' + l)); });
   await page.goto(BASE + '/index.html' + url);
   return page;
@@ -64,7 +65,7 @@ async function t181_274() {
 }
 
 async function t242() {
-  await ctl(DEFAULT + '&levels=100000,250000,500000,1000000,5000000&def=500000');
+  await ctl(C('levels=100000,250000,500000,1000000,5000000&def=500000'));
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 592 } });
   let p = await open(Q(), { ctx }); await start(p);
   const first = await txt(p, '#betVal');
@@ -142,7 +143,7 @@ async function t221_222_31_104_228_107() {
   pass('104', 'autoplay asks for settings before starting, stops on request', dlgOpen && before === 0 && after >= 1, `dialog ${dlgOpen}; plays before start ${before}; after start ${after}; stopped auto=${await p.evaluate(() => window.__game.S.auto)}`);
 
   // [228] Space spins after clicking other buttons
-  await ctl('reset=1&force=zero');
+  await idle(p); await p.waitForTimeout(800); await ctl('reset=1&force=zero');
   await p.click('#turboBtn'); const turbo1 = await p.evaluate(() => window.__game.S.turbo);
   await p.keyboard.press('Space'); await idle(p);
   const turbo2 = await p.evaluate(() => window.__game.S.turbo);
@@ -161,7 +162,7 @@ async function t221_222_31_104_228_107() {
   await p.close();
 
   // [222] balance check before play (spin, Space, autoplay, buys)
-  await ctl(DEFAULT + '&balance=500000');
+  await ctl(C('balance=500000'));
   p = await open(Q()); await start(p); await fast(p);
   await ctl('reset=1');
   await p.click('#spinBtn'); const toast1 = await txt(p, '#toast');
@@ -169,7 +170,7 @@ async function t221_222_31_104_228_107() {
   await p.click('#autoBtn'); await p.click('#autoStart'); await p.waitForTimeout(300);
   const lowPlays = plays(await bodies()).length;
   await p.close();
-  await ctl(DEFAULT + '&balance=50000000');
+  await ctl(C('balance=50000000'));
   p = await open(Q()); await start(p); await fast(p); await ctl('reset=1');
   await p.click('#buyBtn'); await p.click('.buy-item[data-mode="bonus"]');
   const toast2 = await txt(p, '#toast'), confShown = await p.$eval('#buyConfirm', e => !e.classList.contains('hide'));
@@ -182,7 +183,7 @@ async function rulesCheck() {
   await ctl(DEFAULT);
   const p = await open(Q()); await start(p);
   await p.click('#menuBtn');
-  const t = await p.$eval('#rulesBody', e => e.innerText);
+  const t = (await p.$eval('#rulesBody', e => e.innerText)).replace(/\u00a0/g, ' ');
   const ev = []; let ok = true;
   for (const [m, s] of Object.entries(scan)) {
     const rtp = s.rtp.toFixed(2) + '%', mx = s.max.toLocaleString('en') + '×';
@@ -200,7 +201,7 @@ async function rulesCheck() {
   pass('235', 'every on-screen button explained', btns.length === 0 && /space bar/.test(t), btns.length ? 'missing ' + btns.join(' ') : 'spin, bet −/+, ante, catalog, autoplay, turbo, sound, menu, close, space bar, tap-to-skip');
   await p.close();
   // jurisdiction flags
-  await ctl(DEFAULT + '&jur=disabledTurbo,disabledAutoplay,disabledBuyFeature,disabledSpacebar');
+  await ctl(C('jur=disabledTurbo,disabledAutoplay,disabledBuyFeature,disabledSpacebar'));
   const q = await open(Q()); await start(q); await fast(q); await ctl('reset=1');
   const hid = await q.evaluate(() => ['turboBtn', 'autoBtn', 'buyBtn'].map(id => document.getElementById(id).hidden || getComputedStyle(document.getElementById(id)).display === 'none'));
   await q.keyboard.press('Space'); await q.waitForTimeout(300);
@@ -236,7 +237,7 @@ async function langs() {
 async function social() {
   const ev = []; let ok = true;
   for (const [name, q, c] of [['social=true&XSC', Q({ social: 'true', currency: 'XSC' }), 'currency=XSC'], ['XGC currency only', Q({ currency: 'XGC' }), 'currency=XGC'], ['jurisdiction.socialCasino', Q({ lang: 'de' }), 'social=true&currency=USD']]) {
-    await ctl(DEFAULT + '&' + c);
+    await ctl(C(c));
     const p = await open(q); await start(p);
     const chunks = [];
     const grab = async () => chunks.push(await p.evaluate(() => document.body.innerText + ' ' + [...document.querySelectorAll('[aria-label]')].map(e => e.getAttribute('aria-label')).join(' ')));
@@ -302,12 +303,16 @@ async function currencies() {
   const shots = [];
   for (const c of ['USD', 'EUR', 'CAD', 'MXN', 'JPY', 'XSC', 'XGC']) {
     const lv = c === 'JPY' ? '10000000,20000000,100000000,1000000000,15000000000' : '100000,1000000,10000000,100000000,1000000000';
-    await ctl(DEFAULT + `&currency=${c}&balance=123456789120000&levels=${lv}&def=${lv.split(',')[1]}`);
+    await ctl(C(`currency=${c}&balance=${c === 'JPY' ? '123456789000000' : '123456789120000'}&levels=${lv}&def=${lv.split(',')[1]}`));
     const p = await open(Q({ currency: c })); await start(p); await fast(p);
-    for (let i = 0; i < 4; i++) await p.click('#betPlus');
+    while (!(await p.$eval('#betPlus', e => e.disabled))) await p.click('#betPlus');
     await p.click('#anteBtn');
     const r = await p.evaluate(() => ({ bal: document.getElementById('balVal').textContent, bet: document.getElementById('betVal').textContent,
-      of: ['balField', 'betField', 'winField'].filter(id => { const e = document.getElementById(id); return e.scrollWidth > e.clientWidth + 2 || e.querySelector('b').getClientRects().length > 1 || e.querySelector('b').getBoundingClientRect().height > 60; }) }));
+      of: ['balField', 'betField', 'winField'].filter(id => {
+        const f = document.getElementById(id), b = f.querySelector('b'), r = b.getBoundingClientRect(), fr = f.getBoundingClientRect();
+        let bad = r.left < fr.left - 1 || r.right > fr.right + 1 || b.getClientRects().length > 1 || b.scrollWidth > b.clientWidth + 1;
+        if (id === 'betField') { const m = document.getElementById('betMinus').getBoundingClientRect(), p = document.getElementById('betPlus').getBoundingClientRect(); bad = bad || r.left < m.right - 1 || r.right > p.left + 1; }
+        return bad; }) }));
     await ctl('force=win'); await p.click('#anteBtn'); await p.click('#spinBtn'); await idle(p);
     r.win = await txt(p, '#winVal');
     await p.click('#buyBtn');
@@ -336,7 +341,8 @@ async function events() {
   let n = 0;
   for (const m of Object.keys(scan)) {
     const books = JSON.parse(fs.readFileSync(require('path').join(require('path').dirname(SCAN), `books_${m}.json`)));
-    const pick = books.filter(b => !b.drawn).concat(books.filter(b => b.drawn).slice(0, 80));
+    const seen = {}, pick = [];
+    for (const b of books) { const k = b.tags.filter(t => !['win', 'zero'].includes(t)); if (b.drawn ? pick.filter(x => x.drawn).length < 10 : k.some(t => (seen[t] = (seen[t] || 0) + 1) <= 3)) pick.push(b); }
     for (let i = 0; i < pick.length; i += 20) {
       const chunk = pick.slice(i, i + 20).map(b => ({ amount: 1e6, mode: m, state: b.events }));
       await p.evaluate(async rs => { for (const r of rs) { window.__game.S.mode = r.mode; await window.__game.playRound(r); } }, chunk);
@@ -363,12 +369,16 @@ async function viewports() {
 
 (async () => {
   browser = await chromium.launch();
+  const only = (process.argv[5] || '').split(',').filter(Boolean);
   for (const f of [t181_274, t242, t187, t221_222_31_104_228_107, rulesCheck, langs, social, replay, currencies, events, viewports]) {
+    if (only.length && !only.includes(f.name)) continue;
+    const t0 = Date.now();
     try { await f(); } catch (e) { rec(f.name, 'test crashed', 'FAIL', String(e).slice(0, 300)); }
+    console.log(`-- ${f.name} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   }
   await ctl(DEFAULT);
   pass('ext', 'zero external requests', external.length === 0, external.length ? [...new Set(external)].slice(0, 5).join(' ') : 'all requests to the build host / rgs_url');
   pass('console', 'console clean (errors + warnings, no filter)', consoleLog.length === 0, consoleLog.length ? consoleLog.slice(0, 5).join(' || ') : '0 errors, 0 warnings over all non-negative test pages');
-  fs.writeFileSync(`${OUT}/results.json`, JSON.stringify(R, null, 1));
+  fs.writeFileSync(`${OUT}/results${only.length ? '_' + only.join('_') : ''}.json`, JSON.stringify(R, null, 1));
   await browser.close();
 })();

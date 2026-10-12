@@ -28,7 +28,7 @@ class H(SimpleHTTPRequestHandler):
     def do_GET(s):
         u = urlparse(s.path)
         if u.path == "/__ctl":
-            for k, v in parse_qs(u.query).items():
+            for k, v in parse_qs(u.query, keep_blank_values=True).items():
                 v = v[0]
                 if k == "reset": S["log"].clear(); S["bodies"].clear(); continue
                 if k == "levels": S[k] = [int(x) for x in v.split(",")]
