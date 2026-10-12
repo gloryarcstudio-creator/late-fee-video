@@ -11,5 +11,9 @@ shutil.copytree(SRC, OUT, ignore=shutil.ignore_patterns("demo") if "--no-demo" i
 p = os.path.join(OUT, "index.html"); s = open(p).read()
 s = re.sub(r'((?:src|href)="(?:js|css)/[^"?]+)"', r'\1?v=' + v + '"', s)
 open(p, "w").write(s)
+if "--no-demo" in sys.argv:
+    n = os.path.join(OUT, "js", "net.js"); t = open(n).read()
+    assert "const LOCAL_DEMO = true;" in t
+    open(n, "w").write(t.replace("const LOCAL_DEMO = true;", "const LOCAL_DEMO = false;"))
 total = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(OUT) for f in fs)
 print(f"fe_build v{v}: {total / 1e6:.2f} MB")

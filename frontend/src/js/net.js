@@ -9,7 +9,9 @@
   };
   if (P.rgs && !/^https?:\/\//i.test(P.rgs)) P.rgs = 'https://' + P.rgs;
   if (P.rgs) P.rgs = P.rgs.replace(/\/+$/, '');
-  const RGS_MODE = !!(P.sessionID || P.rgs);
+  // build_fe.py --no-demo flips this to false: the upload package has no local math, so a launch without session params errors out.
+  const LOCAL_DEMO = true;
+  const RGS_MODE = !!(P.sessionID || P.rgs) || !LOCAL_DEMO;
   const M = 1e6; // RGS money unit
 
   class RgsError extends Error { constructor(code, msg) { super(msg || code); this.code = code; } }

@@ -12,7 +12,7 @@ ROOT, BOOKS, PORT = sys.argv[1], sys.argv[2], int(sys.argv[3])
 COST = {"base": 1, "ante": 3, "bonus": 100, "double": 300, "director": 600}
 B = {m: json.load(open(f"{BOOKS}/books_{m}.json")) for m in COST}
 S = {"balance": 10**9, "currency": "USD", "levels": [100000, 200000, 400000, 1000000, 2000000, 5000000, 10000000],
-     "def": 1000000, "social": False, "round": None, "force": None, "log": [], "jur": []}
+     "def": 1000000, "social": False, "round": None, "force": None, "log": [], "bodies": [], "jur": []}
 
 
 class H(SimpleHTTPRequestHandler):
@@ -30,6 +30,7 @@ class H(SimpleHTTPRequestHandler):
         if u.path == "/__ctl":
             for k, v in parse_qs(u.query).items():
                 v = v[0]
+                if k == "reset": S["log"].clear(); S["bodies"].clear(); continue
                 if k == "levels": S[k] = [int(x) for x in v.split(",")]
                 elif k == "jur": S[k] = [x for x in v.split(",") if x]
                 elif k == "social": S[k] = v == "true"
@@ -37,6 +38,7 @@ class H(SimpleHTTPRequestHandler):
                 else: S[k] = int(v) if v.isdigit() else v
             return s.j(200, {"ok": 1})
         if u.path == "/__log": return s.j(200, S["log"])
+        if u.path == "/__bodies": return s.j(200, S["bodies"])
         if u.path.startswith("/bet/replay/"):
             parts = u.path.split("/"); m, ev = parts[-2], parts[-1]; S["log"].append(u.path)
             if m not in B or not ev.isdigit(): return s.j(404, {"error": "ERR_VAL"})
@@ -47,7 +49,7 @@ class H(SimpleHTTPRequestHandler):
 
     def do_POST(s):
         p = urlparse(s.path).path
-        b = json.loads(s.rfile.read(int(s.headers.get("Content-Length") or 0)) or b"{}"); S["log"].append(p)
+        b = json.loads(s.rfile.read(int(s.headers.get("Content-Length") or 0)) or b"{}"); S["log"].append(p); S["bodies"].append({"path": p, "body": b})
         bal = {"amount": S["balance"], "currency": S["currency"]}
         if p == "/wallet/authenticate":
             if b.get("sessionID") != "sess-ok": return s.j(400, {"error": "ERR_VAL"})
@@ -57,6 +59,7 @@ class H(SimpleHTTPRequestHandler):
                  "maxBet": S["levels"][-1], "stepBet": S["levels"][0], "jurisdiction": jur}}
             if S["round"]: r["round"] = S["round"]
             return s.j(200, r)
+        if b.get("sessionID") != "sess-ok": return s.j(400, {"error": "ERR_VAL"})
         if p == "/wallet/play":
             if S["round"]: return s.j(400, {"error": "ERR_ACT"})
             a, m = int(b["amount"]), b["mode"]

@@ -137,9 +137,9 @@
     $('turboBtn').hidden = !!S.jur.disabledTurbo;
     $('buyBtn').hidden = !!S.jur.disabledBuyFeature;
     const st = $('stage'); st.classList.toggle('busy', S.busy); st.classList.toggle('bonus', S.inBonus);
-    const aria = { betMinus: 'Decrease ' + t('bet').toLowerCase(), betPlus: 'Increase ' + t('bet').toLowerCase(), menuBtn: t('rules'), soundBtn: 'Sound', turboBtn: 'Turbo', autoBtn: t('autoplay'), spinBtn: 'Spin' };
+    const aria = { betMinus: t('a_betMinus'), betPlus: t('a_betPlus'), menuBtn: t('rules'), soundBtn: t('a_sound'), turboBtn: t('a_turbo'), autoBtn: t('autoplay'), spinBtn: t('a_spin') };
     for (const k in aria) $(k).setAttribute('aria-label', I18N.socialize(aria[k]));
-    document.querySelectorAll('[data-close]').forEach(b => b.setAttribute('aria-label', 'Close'));
+    document.querySelectorAll('[data-close]').forEach(b => b.setAttribute('aria-label', t('a_close')));
   }
 
   // ---------- event player ----------
@@ -423,43 +423,44 @@
   }
 
   function buildRules() {
-    const rows = ['base', 'ante', ...BUY_MODES].map(m => `<tr><td>${t('mode_' + m)}</td><td>${MD[m].cost}×</td><td>${MD[m].rtp.toFixed(2)}%</td><td>${MD[m].maxWin.toLocaleString('en')}×</td></tr>`).join('');
+    const T = k => I18N.socialize(t(k)), J = S.jur || {}, x = v => v.toLocaleString(I18N.lang() === 'ar' ? 'ar-u-nu-latn' : I18N.lang()) + '×';
+    const modes = ['base', 'ante', ...(J.disabledBuyFeature ? [] : BUY_MODES)];
+    const rows = modes.map(m => `<tr><td>${t('mode_' + m)}</td><td>${x(MD[m].cost)}</td><td>${MD[m].rtp.toFixed(2)}%</td><td>${x(MD[m].maxWin)}</td></tr>`).join('');
     const pays = Object.entries(LINE_PAYS).map(([s, p]) => `<tr><td><span class="mini s-${s}">${Reels.LABEL[s]}</span></td>${p.map(v => `<td>${+(v / 20).toFixed(2)}×</td>`).join('')}</tr>`).join('');
     const lines = Reels.PAYLINES.slice(1).map((pl, i) => `<div class="pl-mini"><b>${i + 1}</b>${[0, 1, 2].map(row => `<div>${pl.map(r => `<i class="${r === row ? 'on' : ''}"></i>`).join('')}</div>`).join('')}</div>`).join('');
+    const btn = [['▶', 'b_spin'], ['−&nbsp;/&nbsp;+', 'b_bet'], [t('ante'), 'b_ante'], J.disabledBuyFeature ? null : [t('catalog'), 'b_catalog'],
+      J.disabledAutoplay ? null : ['⟳', 'b_auto'], J.disabledTurbo ? null : ['»', 'b_turbo'], ['♪', 'b_sound'], ['☰', 'b_menu'], ['✕', 'b_close']]
+      .filter(Boolean).map(([k, v]) => `<li><b>${k}</b> ${T(v).replace('{n}', MD.ante.cost)}</li>`).join('');
+    const disc = I18N.lang() !== 'en' && t('r_disc') !== 'r_disc' ? `<p>${t('r_disc')}</p>` : '';
     const html = `
       <h2>${t('rules')}</h2>
-      <p>Late Fee Video is a 5-reel, 3-row video slot with 20 fixed paylines. Wins pay left to right from the leftmost reel, 3 to 5 symbols in a row. Only the highest win per line is paid; wins on different lines are added. Line wins are shown as multiples of the total bet.</p>
-      <h3>Return to player and max win</h3>
-      <table class="t"><tr><th>Mode</th><th>Cost</th><th>RTP</th><th>Max win</th></tr>${rows}</table>
-      <p>The maximum win is ${MD.base.maxWin.toLocaleString('en')}× the base bet in every mode. When it is reached the round ends immediately and the max win is paid.</p>
-      <h3>Modes</h3>
-      <table class="t"><tr><th>Mode</th><th>Cost</th><th>What it does</th></tr>
-        <tr><td>${t('mode_ante')}</td><td>${MD.ante.cost}× bet</td><td>${t('desc_ante')}</td></tr>
-        ${BUY_MODES.map(m => `<tr><td>${t('mode_' + m)}</td><td>${MD[m].cost}× bet</td><td>Buys the Night Shift feature instantly. ${t('desc_' + m)}</td></tr>`).join('')}
+      <p>${T('r_intro')}</p>
+      <h3>${T('r_rtpH')}</h3>
+      <table class="t"><tr><th>${t('th_mode')}</th><th>${T('th_cost')}</th><th>${t('th_rtp')}</th><th>${t('th_max')}</th></tr>${rows}</table>
+      <p>${T('r_rtpNote')} ${T('r_maxNote').replace('{max}', MD.base.maxWin.toLocaleString('en'))}</p>
+      <h3>${t('r_modesH')}</h3>
+      <table class="t"><tr><th>${t('th_mode')}</th><th>${T('th_cost')}</th><th>${t('th_what')}</th></tr>
+        <tr><td>${t('mode_ante')}</td><td>${x(MD.ante.cost)}</td><td>${T('desc_ante')}</td></tr>
+        ${(J.disabledBuyFeature ? [] : BUY_MODES).map(m => `<tr><td>${t('mode_' + m)}</td><td>${x(MD[m].cost)}</td><td>${T('r_buyPrefix')} ${T('desc_' + m)}</td></tr>`).join('')}
       </table>
-      <h3>Paytable (× total bet)</h3>
+      <h3>${T('r_payH')}</h3>
       <table class="t pay"><tr><th></th><th>3</th><th>4</th><th>5</th></tr>${pays}</table>
-      <p><span class="mini s-W">★</span> WILD appears on reels 2, 3 and 4 and substitutes for all symbols except KEY and REW.</p>
-      <p><span class="mini s-S">KEY</span> KEY (scatter) pays anywhere: 3 = 2×, 4 = 10×, 5 = 50× the total bet, and starts Night Shift with 10, 12 or 15 free spins. During free spins 2 KEY add 3 spins and 3 or more add 5 spins, up to 50 free spins per feature.</p>
-      <p><span class="mini s-R">◀◀ REW</span> REW appears on reel 5 during free spins only.</p>
-      <h3>Paylines</h3><div class="pl-grid">${lines}</div>
-      <h3>Features</h3>
-      <p><b>PAUSE.</b> After a winning spin, PAUSE may start: reels with winning symbols freeze and the others respin for free. Each respin that improves the win pays the difference and the chain continues; a respin without improvement ends it.</p>
-      <p><b>Tape.</b> Every winning free spin is recorded on the tape with its board and line win.</p>
-      <p><b>REWIND.</b> When REW lands, the reels rewind to the best recorded spin and its line win is paid again times the rewind multiplier. Then the SECOND TAKE starts: the winning reels of that spin stay paused, the other reels respin once, and any extra line win is also multiplied. After each rewind the multiplier steps up: ×2, ×3, ×5, ×10 (it stays at ×10). If nothing is recorded yet, REW only raises the multiplier.</p>
-      <h3>Buttons</h3>
-      <ul>
-        <li><b>▶ Spin</b> starts a round. During a spin it shows ■ and stops the reels quickly. The space bar also spins.</li>
-        <li><b>− / +</b> change the bet.</li>
-        <li><b>${t('ante')}</b> switches the ${MD.ante.cost}× ante bet on or off.</li>
-        <li><b>${t('catalog')}</b> opens the feature buy menu. Every buy asks for confirmation with its price.</li>
-        <li><b>⟳ Autoplay</b> opens autoplay settings; press it again to stop.</li>
-        <li><b>» Turbo</b> plays rounds faster.</li>
-        <li><b>♪ Sound</b> turns all sound on or off.</li>
-        <li><b>☰ Menu</b> opens these rules. <b>✕</b> closes any window.</li>
-      </ul>
-      <p class="disc">Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and © 2026 Engine.</p>`;
-    $('rulesBody').innerHTML = I18N.socialize(html);
+      <p>${T('r_payNote')}</p>
+      <p><span class="mini s-W">★</span> ${T('r_wild')}</p>
+      <p><span class="mini s-S">KEY</span> ${T('r_key')}</p>
+      <p><span class="mini s-R">◀◀ REW</span> ${T('r_rew')}</p>
+      <h3>${t('r_linesH')}</h3><div class="pl-grid">${lines}</div>
+      <h3>${t('r_featH')}</h3>
+      <p><b>PAUSE.</b> ${T('r_pause')}</p>
+      <p><b>TAPE.</b> ${T('r_tape')}</p>
+      <p><b>REWIND / SECOND TAKE.</b> ${T('r_rewind')}</p>
+      <h3>${t('r_btnH')}</h3>
+      <ul>${btn}</ul>
+      <p>${J.disabledSpacebar ? '' : T('b_space') + ' '}${T('b_skip')}</p>
+      <h3>${t('r_discH')}</h3>
+      ${disc}<p class="disc" lang="en" dir="ltr">${I18N.DISCLAIMER}</p>`;
+    const body = $('rulesBody'); body.innerHTML = html;
+    body.setAttribute('lang', I18N.lang()); body.setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr');
   }
 
   // ---------- error / replay ----------
@@ -474,7 +475,7 @@
     let j;
     try { j = await api.replay(); }
     catch (e) {
-      card.innerHTML = `<div class="osd-big">TRACKING ERROR</div><p>${t('errReplay')}</p>`;
+      card.innerHTML = `<div class="osd-big">${t('errTitle')}</div><p>${t('errReplay')}</p>`;
       card.classList.remove('hide'); $('splash').classList.add('hide'); return;
     }
     const raw = Number(P.amount || 1);
@@ -515,7 +516,8 @@
   async function boot() {
     I18N.setLang(P.lang); I18N.setCurrency(P.currency || 'USD');
     I18N.setSocial(P.social || I18N.isSocialCurrency(P.currency));
-    I18N.apply(); buildAuto();
+    I18N.apply(); buildAuto(); document.documentElement.lang = I18N.lang();
+    ['buyDlg', 'autoDlg', 'rulesDlg'].forEach(id => $(id).setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr'));
     Reels.init($('reels'), $('lines'));
     layout(); window.addEventListener('resize', layout);
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');
