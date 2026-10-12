@@ -44,16 +44,9 @@
     clearTimeout(osd._t); if (text && ms) osd._t = setTimeout(() => el.classList.remove('show'), ms * (S.turbo ? 0.5 : 1));
   }
   function popup(text) { const el = $('spinWin'); el.textContent = text; el.classList.toggle('hide', !text); }
-  // Del: strips for idle/lean/cheer/wow/rew, stills for pause/bored; one-shots fall back to idle on animationend
-  const DEL_MAP = { spin: 'idle', rewind: 'rew' }, DEL_ONESHOT = { cheer: 1, wow: 1, rew: 1 };
-  function del(state) {
-    const el = $('del'); state = DEL_MAP[state] || state;
-    if (!el.querySelector(`[data-anim="${state}"]`)) state = 'idle';
-    el.dataset.state = state;
-    const l = el.querySelector(`.anim[data-anim="${state}"]`);
-    if (l) { l.style.animation = 'none'; void l.offsetWidth; l.style.animation = ''; }
-  }
-  $('del').addEventListener('animationend', e => { const a = e.target.dataset.anim; if (DEL_ONESHOT[a] && $('del').dataset.state === a) del('idle'); });
+  // Del: pose state machine in del.js; block events ride along with the pose requests
+  const DEL_EVENT = { spin: 'spin', idle: 'stop', lean: 'antic', cheer: 'win', wow: 'bigwin', bored: 'stop' };
+  function del(state) { DEL.set(state); if (DEL_EVENT[state]) DEL.event(DEL_EVENT[state]); }
 
   // win particles (tickets, popcorn, tape curls, sparkles)
   const FX = ['ticket', 'popcorn', 'tape', 'sparkle'].flatMap(k => [1, 2, 3, 4].map(i => `assets/fx/${k}_${i}.webp`));
@@ -180,7 +173,7 @@
       if (S.auto && S.autoCfg && S.autoCfg.stopBonus) S.autoStopAfter = true;
       AUDIO.setMusic(null); AUDIO.stinger('stg_bonus_intro');
       await banner(t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 3000, { video: vidSrc('assets/overlay/ov_bonus_intro') });
-      AUDIO.setMusic('mus_bonus');
+      AUDIO.setMusic('mus_bonus'); DEL.event('bonus');
     },
     async updateFreeSpin(e) { S.fsTotal = e.total; $('fsVal').textContent = `${Math.min(e.amount + 1, e.total)}/${e.total}`; },
     async freeSpinRetrigger(e) {
@@ -246,7 +239,7 @@
       const tier = tierOf(winMoney(total) / tierBase());
       AUDIO.setMusic(null); AUDIO.stinger('stg_shift_over');
       await banner(tier ? t(tier) : t('shiftOver'), fmt(winMoney(total)), 3500);
-      S.inBonus = false; AUDIO.setMusic('mus_base');
+      S.inBonus = false; AUDIO.setMusic('mus_base'); DEL.event('base');
       ['fsBox', 'multBox', 'tapeLog'].forEach(id => $(id).classList.add('hide'));
       tapeCounter(0); updateUI();
     },
@@ -306,7 +299,7 @@
     return new Promise(res => {
       const dur = Math.min(6000, 1500 + Math.log10(amount / base) * 1500) * (S.turbo ? 0.5 : 1);
       const t0 = performance.now(); let skipped = false, ended = false;
-      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} AUDIO.setMusic(SCENE_MUSIC()); res(); };
+      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} AUDIO.setMusic(SCENE_MUSIC()); DEL.event('calm'); res(); };
       const onTap = () => { if (!skipped) { skipped = true; } else end(); };
       const onKey = e => { if (e.code === 'Space') { e.preventDefault(); if (!S.jur.disabledSpacebar) onTap(); } };
       el.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey);
@@ -507,7 +500,7 @@
     .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', 'assets/del/del_idle_strip.webp', 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
   // bonus background and Del's one-shot strips (~2.2 MB) load after the game is shown, not behind the splash
-  function lateArt() { setTimeout(() => $('stage').classList.add('late-art'), 600); }
+  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); }, 600); }
   function preload(ms = 12000) {
     const one = u => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = u; });
     return Promise.race([Promise.all(ART.map(one)), new Promise(r => setTimeout(r, ms))]);
@@ -519,6 +512,9 @@
     I18N.apply(); buildAuto(); document.documentElement.lang = I18N.lang();
     ['buyDlg', 'autoDlg', 'rulesDlg'].forEach(id => $(id).setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr'));
     Reels.init($('reels'), $('lines'));
+    // small strips when Del renders at 240 device px or less (phones), full 320 px frames otherwise
+    const sc0 = PORT0 ? Math.min(innerWidth / 720, innerHeight / 1280) : Math.min(innerWidth / 1280, innerHeight / 720);
+    DEL.init({ mobile: (PORT0 ? 250 : 220) * sc0 * (devicePixelRatio || 1) <= 240 });
     layout(); window.addEventListener('resize', layout);
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');
     // splash counter as a tape counter

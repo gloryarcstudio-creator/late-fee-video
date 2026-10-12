@@ -30,7 +30,7 @@ async function open(browser, vp, mobile) {
     const tag = `${vp[0]}x${vp[1]}`;
     if (vp[2]) {
       const mb = page.bytes / 1e6;
-      const early = page.urls.filter(u => /bg_bonus|del_(lean|cheer|wow|rew)_strip|ov_|\.mp4|\.webm/.test(u));
+      const early = page.urls.filter(u => /bg_bonus|del_(lean|cheer|wow|rew|pause|bored)_\w*strip|ov_|\.mp4|\.webm/.test(u));
       ok(`phone boot ${tag}: ${mb.toFixed(2)} MB before PLAY, deferred art not fetched`, early.length === 0 && mb < 6, early.map(u => u.split('/').pop()).join(' '));
     }
     await page.click('#splashBtn'); await page.waitForTimeout(400);
@@ -55,7 +55,7 @@ async function open(browser, vp, mobile) {
     ok(`layout ${tag}: controls on screen, no overlap, not covered`, !m.out.length && !m.ov.length && !m.covered.length, JSON.stringify(m));
     if (vp[2]) ok(`touch size ${tag}: smallest button ${m.minBtn}px`, m.minBtn >= 28);
     ok(`no console errors ${tag}`, page.errors.length === 0, page.errors.slice(0, 2).join(' | '));
-    if (vp[2]) { await page.waitForTimeout(900); const late = page.urls.filter(u => /bg_bonus|del_lean_strip/.test(u)); ok(`deferred art loads after PLAY ${tag}`, late.length >= 2, late.length + ''); }
+    if (vp[2]) { await page.waitForTimeout(900); const late = page.urls.filter(u => /bg_bonus|del_lean_in_strip/.test(u)); ok(`deferred art loads after PLAY ${tag}`, late.length >= 2, late.length + ''); }
     await page.context().close();
   }
   // Space = one spin; held Space does not queue spins

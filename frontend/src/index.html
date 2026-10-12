@@ -6,12 +6,13 @@
 <title>Late Fee Video</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="css/del.css">
 </head>
 <body>
 <div id="stage">
   <div id="bg"><div class="bgl"></div><div class="bgb"></div></div>
 
-  <div id="del" data-state="idle"><div class="anim" data-anim="idle"></div><div class="anim" data-anim="lean"></div><div class="anim" data-anim="cheer"></div><div class="anim" data-anim="wow"></div><div class="anim" data-anim="rew"></div><div class="still" data-anim="pause"></div><div class="still" data-anim="bored"></div></div>
+  <div id="del" data-state="idle"><div id="delBlock"><div id="delStand"><div class="lamp"></div><canvas width="86" height="72"></canvas></div><div id="delShadow"></div><div id="delFig"><div class="anim"></div><div class="anim"></div></div></div></div>
 
   <div id="tape"><span class="lbl" data-t="tape"></span><span id="tapeVal">0000</span></div>
 
@@ -95,6 +96,7 @@
 <script src="js/lang.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/del.js"></script>
 <script src="js/net.js"></script>
 <script src="js/reels.js"></script>
 <script src="js/game.js"></script>

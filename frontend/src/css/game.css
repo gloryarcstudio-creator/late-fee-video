@@ -21,30 +21,10 @@ button { font: inherit; color: inherit; }
 #stage.bonus #bg .bgb { opacity: 1; }
 /* light start: these load once the game is shown (lateArt) unless already needed */
 #stage:not(.late-art):not(.bonus) #bg .bgb { background-image: none; }
-#stage:not(.late-art) #del:not([data-state="lean"]) .anim[data-anim="lean"] { background-image: none; }
-#stage:not(.late-art) #del:not([data-state="cheer"]) .anim[data-anim="cheer"] { background-image: none; }
-#stage:not(.late-art) #del:not([data-state="wow"]) .anim[data-anim="wow"] { background-image: none; }
-#stage:not(.late-art) #del:not([data-state="rew"]) .anim[data-anim="rew"] { background-image: none; }
 
 
 
 
-/* Del: strips (12 fps, steps(N-1) ends on the last frame) and stills share one box, bottom-aligned */
-#del { position: absolute; z-index: 5; }
-#del .anim, #del .still { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; opacity: 0; background-repeat: no-repeat; background-position: 0 0; }
-#del .still { background-size: contain; background-position: center bottom; aspect-ratio: 0.3864; }
-#del .anim { background-size: calc(var(--n) * 100%) 100%; }
-@keyframes strip { to { background-position-x: 100%; } }
-#del .anim[data-anim="idle"] { --n: 48; aspect-ratio: 0.4; background-image: url(../assets/del/del_idle_strip.webp); animation: strip 4s steps(47) infinite; }
-#del .anim[data-anim="lean"] { --n: 24; aspect-ratio: 0.3563; background-image: url(../assets/del/del_lean_strip.webp); animation: strip 2s steps(23) 1 forwards; }
-#del .anim[data-anim="cheer"] { --n: 24; aspect-ratio: 0.3792; background-image: url(../assets/del/del_cheer_strip.webp); animation: strip 2s steps(23) 1 forwards; }
-#del .anim[data-anim="wow"] { --n: 24; aspect-ratio: 0.4188; background-image: url(../assets/del/del_wow_strip.webp); animation: strip 2s steps(23) 1 forwards; }
-#del .anim[data-anim="rew"] { --n: 24; aspect-ratio: 0.3521; background-image: url(../assets/del/del_rew_strip.webp); animation: strip 2s steps(23) 1 forwards; }
-#del .still[data-anim="pause"] { background-image: url(../assets/del/del_pause.webp); }
-#del .still[data-anim="bored"] { background-image: url(../assets/del/del_bored.webp); }
-#del[data-state="idle"] [data-anim="idle"], #del[data-state="lean"] [data-anim="lean"], #del[data-state="cheer"] [data-anim="cheer"], #del[data-state="wow"] [data-anim="wow"],
-#del[data-state="rew"] [data-anim="rew"], #del[data-state="pause"] [data-anim="pause"], #del[data-state="bored"] [data-anim="bored"] { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { #del .anim { animation-play-state: paused; } }
 
 
 
