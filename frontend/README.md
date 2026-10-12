@@ -6,6 +6,7 @@
 - `tools/qa.js http://127.0.0.1:8765 OUT [logic|shots|states|all]` — Playwright checks and screenshots.
 - `tools/qa_audio.js http://127.0.0.1:8765` — real-time audio scene checks (music per scene, loops, mute).
 - `tools/qa_del.js http://127.0.0.1:8765 OUT` — Del pose chains on anchor frames and character-block events.
+- `tools/art/cut_del_strips.py SRC OUT [scale] [mobile]` — Del strips from the 720×1080 animated WebP sources (one shared crop box, rows for long clips).
 - `tools/audio/synth.py src/assets/audio [names]` — regenerate the sounds and `audio.json` (see AUDIO.md).
 - `tools/scan_books.py PUBLISH_DIR OUT` — full math check (RTP/max/hit per mode, books vs lookup tables, event types) and a real-book set for the mock.
 - `tools/qa_stage9.js http://127.0.0.1:PORT OUT OUT/scan.json [suites]` — pre-submission checklist by Engine ID (RGS, bets, restore, social, replay, currencies, 16 languages, console, external hosts).

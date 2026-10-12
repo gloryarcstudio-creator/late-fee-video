@@ -2,11 +2,13 @@
 // Every clip starts and ends on an anchor pose, so clips chain on frame boundaries with no cut:
 //   hold states  idle ⇄ lean / pause / bored   via  <state>_in  →  <state>_loop  →  <state>_out
 //   one-shots    cheer / wow / rew             from idle back to idle (wow interrupts anything with a 150 ms crossfade)
-// Strips: assets/del/<clip>_strip.webp (320×480 frames, 12 fps); assets/del/m/ holds 160×240 copies for small screens.
+// Strips: assets/del/<clip>_strip.webp (384×754 frames, 12 fps, cut by tools/art/cut_del_strips.py from the 720×1080 sources);
+// assets/del/m/ holds 288×566 copies for phones. A clip longer than ~16000 px is laid out in rows (idle: 24×2); each clip gets
+// its own generated @keyframes that walks the columns of every row with steps() and jumps rows on a frame boundary.
 window.DEL = (function () {
-  // name: [frames, seconds, loop, startPose, endPose]
+  // name: [frames, seconds, loop, startPose, endPose, columns (frames per row; default = frames)]
   const CLIPS = {
-    idle: [48, 4, 1, 'idle', 'idle'], cheer_t: [30, 2.5, 0, 'idle', 'idle'], wow_t: [36, 3, 0, 'idle', 'idle'], rew_t: [30, 2.5, 0, 'idle', 'idle'],
+    idle: [48, 4, 1, 'idle', 'idle', 24], cheer_t: [30, 2.5, 0, 'idle', 'idle'], wow_t: [36, 3, 0, 'idle', 'idle'], rew_t: [30, 2.5, 0, 'idle', 'idle'],
     lean_in: [12, 1, 0, 'idle', 'lean'], lean_loop: [24, 2, 1, 'lean', 'lean'], lean_out: [12, 1, 0, 'lean', 'idle'],
     pause_in: [12, 1, 0, 'idle', 'pause'], pause_loop: [24, 2, 1, 'pause', 'pause'], pause_out: [12, 1, 0, 'pause', 'idle'],
     bored_in: [18, 1.5, 0, 'idle', 'bored'], bored_loop: [36, 3, 1, 'bored', 'bored'], bored_out: [12, 1, 0, 'bored', 'idle'],
@@ -20,6 +22,23 @@ window.DEL = (function () {
   let clip = null, t0 = 0;  // clip playing now and when it started
   const loaded = {}, imgs = {};
   const url = name => `${dir}del_${name}_strip.webp`;
+  const pct = v => `${+(v * 100).toFixed(4)}%`;
+  let sheet;
+  // @keyframes del_<name>: per row, steps(cols-1) across the columns; a row change takes one frame step and holds (step-end)
+  function keyframes(name) {
+    const [n, , , , , c0] = CLIPS[name], cols = c0 || n, rows = Math.ceil(n / cols), T = 1 / (n - 1);
+    const pos = (c, r) => `background-position: ${pct(cols > 1 ? c / (cols - 1) : 0)} ${pct(rows > 1 ? r / (rows - 1) : 0)}`;
+    let t = 0, kf = '';
+    for (let r = 0; r < rows; r++) {
+      const f = Math.min(cols, n - r * cols);
+      kf += `${pct(t)} { ${pos(0, r)}; animation-timing-function: steps(${Math.max(1, f - 1)}); } `;
+      t += (f - 1) * T;
+      if (r < rows - 1) { kf += `${pct(t)} { ${pos(f - 1, r)}; animation-timing-function: step-end; } `; t += T; }
+      else kf += `100% { ${pos(f - 1, r)}; }`;
+    }
+    if (!sheet) { sheet = document.createElement('style'); document.head.appendChild(sheet); }
+    sheet.sheet.insertRule(`@keyframes del_${name} { ${kf} }`, sheet.sheet.cssRules.length);
+  }
 
   function load(name) {
     if (imgs[name]) return imgs[name];
@@ -29,11 +48,11 @@ window.DEL = (function () {
 
   // put `name` on the next layer, aligned on its first frame; `xfade` crossfades instead of a hard swap
   function play(name, xfade) {
-    const [n, sec, loop] = CLIPS[name]; t0 = performance.now();
+    const [n, sec, loop, , , c0] = CLIPS[name], cols = c0 || n; t0 = performance.now();
     const prev = layers[cur]; cur ^= 1; const el = layers[cur];
-    el.style.animation = 'none'; el.style.setProperty('--n', n); el.style.backgroundImage = `url(${url(name)})`;
+    el.style.animation = 'none'; el.style.setProperty('--c', cols); el.style.setProperty('--r', Math.ceil(n / cols)); el.style.backgroundImage = `url(${url(name)})`;
     void el.offsetWidth;
-    el.style.animation = `strip ${sec}s steps(${n - 1}) ${loop ? 'infinite' : '1 forwards'}`;
+    el.style.animation = `del_${name} ${sec}s linear ${loop ? 'infinite' : '1 forwards'}`;
     el.classList.toggle('xf', !!xfade); prev.classList.toggle('xf', !!xfade);
     el.classList.add('on'); prev.classList.remove('on');
     clip = name; root.dataset.state = name.replace(/_(t|loop)$/, '');
@@ -97,6 +116,7 @@ window.DEL = (function () {
   function init(opts = {}) {
     root = document.getElementById('del'); fig = root.querySelector('#delFig'); layers = [...fig.querySelectorAll('.anim')];
     if (opts.mobile) dir = 'assets/del/m/';
+    Object.keys(CLIPS).forEach(keyframes);
     layers.forEach(l => { l.addEventListener('animationend', onEnd); l.addEventListener('animationiteration', onIter); });
     crt = root.querySelector('canvas'); if (crt) { ctx = crt.getContext('2d'); setInterval(noise, 125); }
     load('idle'); play('idle');

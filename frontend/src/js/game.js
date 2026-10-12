@@ -496,10 +496,13 @@
 
   // ---------- boot ----------
   const PORT0 = window.innerHeight > window.innerWidth * 1.05;
+  // phone strips (288×566 frames) on phones and wherever Del renders at 460 device px or less; 384×754 frames otherwise
+  const SC0 = PORT0 ? Math.min(innerWidth / 720, innerHeight / 1280) : Math.min(innerWidth / 1280, innerHeight / 720);
+  const DEL_M = Math.max(innerWidth, innerHeight) <= 960 || (PORT0 ? 430 : 520) * SC0 * (devicePixelRatio || 1) <= 460;
   const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`)
-    .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', 'assets/del/del_idle_strip.webp', 'assets/promo/logo_emblem.webp'],
+    .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}del_idle_strip.webp`, 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
-  // bonus background and Del's one-shot strips (~2.2 MB) load after the game is shown, not behind the splash
+  // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
   function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); }, 600); }
   function preload(ms = 12000) {
     const one = u => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = u; });
@@ -512,9 +515,7 @@
     I18N.apply(); buildAuto(); document.documentElement.lang = I18N.lang();
     ['buyDlg', 'autoDlg', 'rulesDlg'].forEach(id => $(id).setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr'));
     Reels.init($('reels'), $('lines'));
-    // small strips when Del renders at 240 device px or less (phones), full 320 px frames otherwise
-    const sc0 = PORT0 ? Math.min(innerWidth / 720, innerHeight / 1280) : Math.min(innerWidth / 1280, innerHeight / 720);
-    DEL.init({ mobile: (PORT0 ? 250 : 220) * sc0 * (devicePixelRatio || 1) <= 240 });
+    DEL.init({ mobile: DEL_M });
     layout(); window.addEventListener('resize', layout);
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');
     // splash counter as a tape counter

@@ -1,16 +1,16 @@
-/* Del: pose strips on two layers (seamless swap on anchor frames, crossfade only on interrupts) and the character block */
+/* Del: pose strips on two layers (seamless swap on anchor frames, crossfade only on interrupts) and the character block.
+   #delBlock (figure + shadow) moves with the game events; the stand (#delStand) stays put, only its lamp and mini CRT live. */
 #del { position: absolute; z-index: 5; }
 #delBlock { position: absolute; inset: 0; transition: transform .3s cubic-bezier(.4, 0, .2, 1); }
 #delFig { position: absolute; inset: 0; }
-#delFig .anim { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; aspect-ratio: 2 / 3; opacity: 0;
-  background-repeat: no-repeat; background-position: 0 0; background-size: calc(var(--n, 48) * 100%) 100%; }
+#delFig .anim { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; aspect-ratio: 480 / 943; opacity: 0;
+  background-repeat: no-repeat; background-position: 0 0; background-size: calc(var(--c, 48) * 100%) calc(var(--r, 1) * 100%); }
 #delFig .anim.on { opacity: 1; }
 #delFig .anim.xf { transition: opacity .15s linear; }
-@keyframes strip { to { background-position-x: 100%; } }
 @media (prefers-reduced-motion: reduce) { #delFig .anim { animation-play-state: paused; } }
 
 /* stand: returns counter behind Del's legs (landscape only); lamp glow flickers, mini CRT shows canvas static */
-#delStand { position: absolute; left: -150px; bottom: 26px; width: 280px; aspect-ratio: 784 / 606; background: url(../assets/del/del_stand.webp) no-repeat center / 100% 100%; z-index: -1; }
+#delStand { position: absolute; left: -150px; bottom: 4px; width: 280px; aspect-ratio: 784 / 606; background: url(../assets/del/del_stand.webp) no-repeat center / 100% 100%; z-index: -1; }
 #delStand .lamp { position: absolute; left: 26%; top: 2%; width: 20%; height: 22%; border-radius: 50%; pointer-events: none;
   background: radial-gradient(ellipse at 50% 60%, rgba(255, 190, 90, .55) 0%, rgba(255, 160, 60, .18) 45%, transparent 70%); mix-blend-mode: screen;
   animation: lampA 2.3s ease-in-out infinite, lampB 5.1s ease-in-out infinite; }
@@ -18,7 +18,7 @@
 @keyframes lampB { 0%, 100% { opacity: 1; } 37% { opacity: .85; } 41% { opacity: 1; } 78% { opacity: .92; } }
 #del.antic #delStand .lamp { animation-duration: .35s, 1.1s; }
 #delStand canvas { position: absolute; left: 46.3%; top: 10.7%; width: 10.8%; height: 12%; border-radius: 6% / 8%; opacity: .85; }
-#delShadow { position: absolute; left: 50%; bottom: -4px; width: 60%; height: 14px; transform: translateX(-50%); border-radius: 50%;
+#delShadow { position: absolute; left: 50%; bottom: -3px; width: 60%; height: 14px; transform: translateX(-50%); border-radius: 50%;
   background: radial-gradient(ellipse, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, .25) 50%, transparent 72%); z-index: -1;
   animation: breathe 4s ease-in-out infinite; }
 @keyframes breathe { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(.95, .9); } }
