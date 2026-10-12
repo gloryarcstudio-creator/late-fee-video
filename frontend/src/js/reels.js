@@ -21,7 +21,7 @@
   function randomSym(stripName, r) {
     const s = (strips[stripName] || strips.BR0)[r];
     let n = s[Math.floor(Math.random() * s.length)];
-    if (n === 'R' || n === 'S') n = 'L' + (1 + Math.floor(Math.random() * 4)); // keep specials out of the blur
+    if (!n || n === 'R' || n === 'S') n = 'L' + (1 + Math.floor(Math.random() * 4)); // keep specials (and any padding blank) out of the blur
     return n;
   }
   function names(boardCol) { return boardCol.map(x => (typeof x === 'string' ? x : x.name)); }
