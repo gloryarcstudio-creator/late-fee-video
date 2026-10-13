@@ -27,8 +27,8 @@ def frames_of(path):
     else:
         im = Image.open(path); fr = []
         for i in range(getattr(im, 'n_frames', 1)): im.seek(i); fr.append(im.convert('RGBA').copy())
-    # resample to N frames over the clip (first frame kept, last frame dropped: it repeats the first in a loop)
-    idx = [round(i * (len(fr) - 1) / N) for i in range(N)]
+    # resample to N frames over the loop period (first frame kept; the source's closing frame, equal to the first, is the seam)
+    idx = [min(len(fr) - 1, round(i * len(fr) / N)) for i in range(N)]
     return [fr[i] for i in idx]
 
 def bbox(im):
