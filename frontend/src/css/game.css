@@ -43,7 +43,6 @@ button { font: inherit; color: inherit; }
 .sym { width: var(--cell); height: var(--cell); position: relative; background: center / 88% 88% no-repeat; border-radius: 10px; }
 .sym span, .sym i { display: none; }
 .sym .idle { position: absolute; left: 6%; top: 6%; width: 88%; height: 88%; background: url() 0 0 / calc(var(--n, 24) * 100%) 100% no-repeat; pointer-events: none; }
-@keyframes symidle { to { background-position-x: 100%; } }
 @media (prefers-reduced-motion: reduce) { .sym .idle { display: none; } }
 .sym.s-L1 { background-image: url(../assets/symbols/sym_L1.webp); } .sym.s-L2 { background-image: url(../assets/symbols/sym_L2.webp); }
 .sym.s-L3 { background-image: url(../assets/symbols/sym_L3.webp); } .sym.s-L4 { background-image: url(../assets/symbols/sym_L4.webp); }

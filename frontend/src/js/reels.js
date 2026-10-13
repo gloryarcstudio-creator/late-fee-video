@@ -11,24 +11,32 @@
     [0, 1, 1, 1, 0], [2, 1, 1, 1, 2], [0, 2, 0, 2, 0], [2, 0, 2, 0, 2], [0, 2, 2, 2, 0]];
   const N = 5, ROWS = 5;
   let root, svg, cell = 136, gap = 6, cols = [], anims = [], strips = window.REELSTRIPS;
-  // idle loops (batch 05): {dir, clips: {name: {n, sec}}}; a standing cell gets a strip layer over its still, phase-shifted,
-  // with a random 1-3 s rest between passes so the board breathes instead of blinking in sync. Fillers during a spin get none.
-  let IDLE = null;
-
+  // idle loops (batch 05): {dir, clips: {name: {n, sec}}, rest}. A standing cell gets a strip layer over its still. Every cell of
+  // one symbol runs on the same clock (phase = symbol type, not cell), so twins on the board move in sync; different symbols are
+  // offset from each other. Each pass is followed by a rest on the first frame, baked into the keyframes so the sync never drifts.
+  let IDLE = null, T0 = 0; const RULES = {};
+  function idleRule(n, sec, rest) {
+    const key = `symidle_${n}_${sec}_${rest}`.replace(/\./g, '_');
+    if (!RULES[key]) {
+      const p = +(100 * sec / (sec + rest)).toFixed(3);
+      const sheet = document.getElementById('symidleCss') || document.head.appendChild(Object.assign(document.createElement('style'), { id: 'symidleCss' }));
+      sheet.sheet.insertRule(`@keyframes ${key} { 0% { background-position-x: 0%; animation-timing-function: steps(${n - 1}); } ${p}% { background-position-x: 100%; animation-timing-function: step-end; } ${p + 0.01}% { background-position-x: 0%; animation-timing-function: step-end; } 100% { background-position-x: 0%; } }`, 0);
+      RULES[key] = true;
+    }
+    return key;
+  }
   function symEl(name, live) {
     const d = document.createElement('div');
     d.className = 'sym s-' + name + (name === 'W' ? ' wild' : name === 'S' ? ' scatter' : name === 'R' ? ' rew' : '');
     d.innerHTML = '<span>' + (LABEL[name] || name) + '</span>' + (name === 'W' ? '<i>WILD</i>' : '');
     const c = live && IDLE && IDLE.clips[name];
     if (c) {
+      const rest = IDLE.rest == null ? 2 : IDLE.rest, P = c.sec + rest, keys = Object.keys(IDLE.clips);
+      const phase = (keys.indexOf(name) / keys.length) * P;                       // each symbol type starts at its own point of the period
+      const at = ((performance.now() - T0) / 1000 + phase) % P;                     // where this type is on the shared clock right now
       const b = document.createElement('b'); b.className = 'idle';
       b.style.setProperty('--n', c.n); b.style.backgroundImage = `url(${IDLE.dir}sym_${name}_strip.webp)`;
-      b.style.animation = `symidle ${c.sec}s steps(${c.n - 1}) -${(Math.random() * c.sec).toFixed(2)}s infinite`;
-      b.addEventListener('animationiteration', () => {
-        if (d.classList.contains('hit') || d.classList.contains('hit-s')) return;   // winning symbols keep going
-        b.style.animationPlayState = 'paused';
-        setTimeout(() => { b.style.animationPlayState = 'running'; }, 1000 + Math.random() * 2000);
-      });
+      b.style.animation = `${idleRule(c.n, c.sec, rest)} ${P}s linear -${at.toFixed(3)}s infinite`;
       d.appendChild(b);
     }
     return d;
@@ -66,7 +74,7 @@
     // Show a board immediately (restore, replay start).
     show(board) { board.forEach((col, r) => { cols[r].cur = names(col); build(r, cols[r].cur, 1, true); }); },
     // turn the idle loops on once their strips are loaded; rebuilds the standing board
-    idle(cfg) { IDLE = cfg; if (!anims.length) cols.forEach((c, r) => build(r, c.cur, 1, true)); },
+    idle(cfg) { IDLE = cfg; T0 = performance.now(); if (!anims.length) cols.forEach((c, r) => build(r, c.cur, 1, true)); },
 
     /**
      * Spin to a board. opts: {spin:[reel idx], anticipation:[], reverse, turbo, strip, fast}
