@@ -104,6 +104,11 @@
     const v = { '--cell': cell + 'px', '--gap': gap + 'px', '--pad': pad + 'px', '--holeTop': holeTop + 'px', '--tvw': tvW + 'px', '--tvh': tvH + 'px',
       '--fx': -(pad + HX0 * tvW) + 'px', '--fy': -(holeTop + HY0 * tvH) + 'px' };
     for (const k in v) st.style.setProperty(k, v[k]);
+    // counter slice in front of Del: the background is center/cover on #bg (stage + letterbox bleed, +10px when the live scene is on);
+    // the slice is the picture's rows 1122..1440 of 2560×1440, left 800 px, capped before the TV
+    const bl = Math.ceil(ox / sc) + 1 + (st.classList.contains('live') ? 10 : 0), bt = Math.ceil(oy / sc) + 1 + (st.classList.contains('live') ? 10 : 0);
+    const BW = W + 2 * bl, BH = H + 2 * bt, bs = Math.max(BW / 2560, BH / 1440), ix = -bl + (BW - 2560 * bs) / 2, iy = -bt + (BH - 1440 * bs) / 2;
+    const co = $('counter').style; co.left = ix + 'px'; co.top = (iy + 1122 * bs) + 'px'; co.width = Math.min(800 * bs, tvLeft - 2 - ix) + 'px'; co.height = (318 * bs) + 'px';
     if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); }
   }
 
@@ -542,7 +547,7 @@
     };
     function parallax(e) {
       const x = (e.clientX / innerWidth - .5) * -8, y = (e.clientY / innerHeight - .5) * -6;
-      $('bg').style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      $('bg').style.transform = $('counter').style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     }
     return {
       start() {
@@ -551,7 +556,7 @@
         bg.insertBefore(vids.base, bg.querySelector('.bgb')); bg.appendChild(vids.bonus);
         bonus = $('stage').classList.contains('bonus'); playVideo(bonus ? vids.bonus : vids.base);
         tvLoop();
-        $('stage').classList.add('live'); window.addEventListener('pointermove', parallax, { passive: true });
+        $('stage').classList.add('live'); layout(); window.addEventListener('pointermove', parallax, { passive: true });
         document.addEventListener('visibilitychange', () => {
           const all = [vids.base, vids.bonus, tvv].filter(Boolean);
           if (document.hidden) all.forEach(v => v.pause()); else { playVideo(bonus ? vids.bonus : vids.base); if (tvv) playVideo(tvv); }
