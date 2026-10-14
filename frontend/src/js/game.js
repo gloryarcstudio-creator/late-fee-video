@@ -129,7 +129,7 @@
     $('autoBtn').hidden = !!S.jur.disabledAutoplay;
     $('turboBtn').hidden = !!S.jur.disabledTurbo;
     $('buyBtn').hidden = !!S.jur.disabledBuyFeature;
-    const st = $('stage'); st.classList.toggle('busy', S.busy); st.classList.toggle('bonus', S.inBonus);
+    const st = $('stage'); st.classList.toggle('busy', S.busy); st.classList.toggle('bonus', S.inBonus); LIVE.sync();
     const aria = { betMinus: t('a_betMinus'), betPlus: t('a_betPlus'), menuBtn: t('rules'), soundBtn: t('a_sound'), turboBtn: t('a_turbo'), autoBtn: t('autoplay'), spinBtn: t('a_spin') };
     for (const k in aria) $(k).setAttribute('aria-label', I18N.socialize(aria[k]));
     document.querySelectorAll('[data-close]').forEach(b => b.setAttribute('aria-label', t('a_close')));
@@ -264,6 +264,8 @@
 
   async function showWins(wins, quick) {
     if (!wins || !wins.length) return;
+    // gold frame while the wins show (batch 06), off at the next spin; a faint tint under 5× the bet, the full plate above
+    const st = $('stage'); st.style.setProperty('--tvwin', winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)) / S.bet >= 5 ? 1 : .45); st.classList.add('tvwin');
     Reels.dim(true);
     wins.forEach(w => Reels.highlight(w.positions));
     Reels.lines(wins);
@@ -335,7 +337,7 @@
     mode = mode || baseMode();
     const c = cost(mode);
     if (S.balance + 1e-9 < c) { toast(t('noFunds')); sfx('nofunds'); stopAuto(); return; }
-    S.busy = true; S.skip = false; Reels.clear(); popup(''); sfx('spin_start');
+    S.busy = true; S.skip = false; Reels.clear(); popup(''); sfx('spin_start'); LIVE.burst(); $('stage').classList.remove('tvwin');
     const t0 = performance.now();
     const before = S.balance; S.balance -= c; updateUI();
     let res;
@@ -503,7 +505,62 @@
     .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}del_idle_strip.webp`, 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
   // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
-  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); }, 600); }
+  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); LIVE.start(); }, 600); }
+  // living scene (batch 06): looped background videos, the TV-frame loop and pointer parallax. Desktop only; phones, portrait,
+  // reduced motion and the QA fast mode keep the stills (no <video> is created there, so nothing downloads).
+  const LIVE = (() => {
+    const still = () => fast() || PORT0 || Math.max(innerWidth, innerHeight) <= 960 || (matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const vids = {}; let on = false, bonus = false, tvv = null;
+    const mk = (cls, name) => {
+      const v = document.createElement('video'); v.className = cls; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      [['webm', 'video/webm'], ['mp4', 'video/mp4']].forEach(([ext, type]) => { const so = document.createElement('source'); so.src = `assets/bg/${name}_loop.${ext}`; so.type = type; v.appendChild(so); });
+      v.addEventListener('playing', () => v.classList.add('on'), { once: true });
+      return v;
+    };
+    function tvLoop() {
+      const v = $('tvFrame').querySelector('video.loop'); if (!v || !v.canPlayType('video/webm; codecs="vp9"')) return;
+      v.src = 'assets/scene/tv_frame_loop.webm'; tvv = v;
+      // the loop is VP9 with alpha; a browser that decodes VP9 but not its alpha would paint a black box over the reels, so the
+      // first decoded frame is checked on a canvas: the screen window must come back transparent
+      v.addEventListener('playing', () => {
+        try {
+          const c = document.createElement('canvas'); c.width = 16; c.height = 16; const g = c.getContext('2d', { willReadFrequently: true });
+          g.drawImage(v, 0, 0, 16, 16); const px = g.getImageData(8, 7, 1, 1).data;
+          if (px[3] < 16) v.classList.add('on'); else { v.pause(); v.removeAttribute('src'); v.load(); tvv = null; }
+        } catch (e) { v.classList.add('on'); }
+      }, { once: true });
+      playVideo(v);
+    }
+    const sync = () => {
+      if (!on) return;
+      const b = $('stage').classList.contains('bonus');
+      if (b !== bonus) {
+        bonus = b;
+        if (b) { playVideo(vids.bonus); setTimeout(() => { if (bonus) vids.base.pause(); }, 1000); }
+        else { playVideo(vids.base); setTimeout(() => { if (!bonus) vids.bonus.pause(); }, 1000); }
+      }
+    };
+    function parallax(e) {
+      const x = (e.clientX / innerWidth - .5) * -8, y = (e.clientY / innerHeight - .5) * -6;
+      $('bg').style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+    }
+    return {
+      start() {
+        if (on || still()) return; on = true;
+        const bg = $('bg'); vids.base = mk('base', 'bg_land'); vids.bonus = mk('bonus', 'bg_bonus');
+        bg.insertBefore(vids.base, bg.querySelector('.bgb')); bg.appendChild(vids.bonus);
+        bonus = $('stage').classList.contains('bonus'); playVideo(bonus ? vids.bonus : vids.base);
+        tvLoop();
+        $('stage').classList.add('live'); window.addEventListener('pointermove', parallax, { passive: true });
+        document.addEventListener('visibilitychange', () => {
+          const all = [vids.base, vids.bonus, tvv].filter(Boolean);
+          if (document.hidden) all.forEach(v => v.pause()); else { playVideo(bonus ? vids.bonus : vids.base); if (tvv) playVideo(tvv); }
+        });
+      },
+      sync,
+      burst() { if (still()) return; const tv = $('tv'); tv.classList.remove('burst'); void tv.offsetWidth; tv.classList.add('burst'); setTimeout(() => tv.classList.remove('burst'), 260); },
+    };
+  })();
   // symbol idle loops (batch 05): optional; nothing happens without assets/symbols/idle/idle.json
   async function symIdle() {
     try {
