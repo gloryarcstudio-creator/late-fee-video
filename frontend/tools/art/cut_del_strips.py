@@ -1,5 +1,6 @@
 """Cut Del sprite strips from the batch 04 animated WebP sources (720x1080, 12 fps).
-usage: python3 tools/art/cut_del_strips.py <animated_dir> <out_dir> [scale=0.8] [mobile=0.6]
+usage: python3 tools/art/cut_del_strips.py <animated_dir> art/del_strips [scale=0.8] [mobile=0.6]
+The game ships single frames cut from these strips (split_del_frames.py); the strips stay in art/del_strips/.
 All clips share one crop box (union of the alpha over every frame of every clip, plus margin), so the
 anchor poses stay aligned. Clips whose row would exceed 16000 px are laid out in 2+ rows (del.js reads
 cols/rows from del_strips.json)."""

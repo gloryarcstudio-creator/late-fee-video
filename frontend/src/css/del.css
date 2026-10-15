@@ -1,13 +1,9 @@
-/* Del: pose strips on two layers (seamless swap on anchor frames, crossfade only on interrupts) and the character block.
-   #delBlock (figure + shadow) moves with the game events; the stand (#delStand) stays put, only its lamp and mini CRT live. */
+/* Del: frames drawn by js/del.js on one canvas (frame 384×754 plus a 32 px side margin for the stabilising shifts).
+   #delBlock (figure + shadow) reacts to the game events; the stand (#delStand) stays put, only its lamp and mini CRT live. */
 #del { position: absolute; z-index: 5; }
-#delBlock { position: absolute; inset: 0; transition: transform .3s cubic-bezier(.4, 0, .2, 1); }
+#delBlock { position: absolute; inset: 0; }
 #delFig { position: absolute; inset: 0; }
-#delFig .anim { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; aspect-ratio: 480 / 943; opacity: 0;
-  background-repeat: no-repeat; background-position: 0 0; background-size: calc(var(--c, 48) * 100%) calc(var(--r, 1) * 100%); }
-#delFig .anim.on { opacity: 1; }
-#delFig .anim.xf { transition: opacity .2s linear; }
-@media (prefers-reduced-motion: reduce) { #delFig .anim { animation-play-state: paused; } }
+#delFig canvas { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; aspect-ratio: 448 / 754; }
 
 /* stand: returns counter behind Del's legs (landscape only); lamp glow flickers, mini CRT shows canvas static */
 #delStand { position: absolute; left: -150px; bottom: 4px; width: 280px; aspect-ratio: 784 / 606; background: url(../assets/del/del_stand.webp) no-repeat center / 100% 100%; z-index: -1; }
@@ -23,11 +19,10 @@
   animation: breathe 4s ease-in-out infinite; }
 @keyframes breathe { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(.95, .9); } }
 
-/* block motion by game events */
-#del.spin #delBlock { transform: translateX(8px); }
-#del.antic #delBlock { transform: translateX(8px) rotate(2deg); transform-origin: 50% 100%; }
-#del.win #delBlock { animation: delBounce .72s ease-out; }
-@keyframes delBounce { 0%, 50%, 100% { translate: 0 0; } 25%, 75% { translate: 0 -6px; } }
+/* block motion by game events: only a soft vertical hop on wins (no sideways shift, so Del never sways between spins) */
+#del.win #delBlock { animation: delHop .9s ease-in-out; }
+@keyframes delHop { 0%, 100% { translate: 0 0; } 35% { translate: 0 -5px; } 70% { translate: 0 -1px; } }
+@media (prefers-reduced-motion: reduce) { #del.win #delBlock { animation: none; } }
 /* big win: a warm glow behind the figure (soft ellipse, no box edges); it fades in and is cleared by 'calm' or after 6 s */
 #delBlock::before { content: ''; position: absolute; left: 50%; top: 18%; width: 140%; height: 70%; transform: translateX(-50%); pointer-events: none; z-index: -1;
   border-radius: 50%; background: radial-gradient(ellipse at 50% 50%, rgba(255, 200, 110, .45) 0%, rgba(255, 170, 70, .18) 40%, transparent 70%);

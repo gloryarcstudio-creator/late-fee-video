@@ -166,7 +166,7 @@ button { font: inherit; color: inherit; }
 .ov-inner small { display: block; margin-top: 26px; color: #c8c8d0; font-size: 20px; letter-spacing: 2px; }
 
 /* ---------- landscape 1280×720 ---------- */
-#stage.land #del { left: calc(10px + var(--e) / 4); top: 150px; width: 220px; height: 520px; } /* stands behind the counter, shins hidden by #counter */
+#stage.land #del { left: calc(10px + var(--e) / 4); top: 104px; width: 220px; height: 520px; } /* stands behind the counter (top set by layout() from the counter line), shoes hidden by #counter */
 /* counter slice in front of Del (landscape): the background's counter from its top edge down, positioned by layout() on the same
    center/cover mapping as #bg, so it continues the picture seamlessly; .cb crossfades with the bonus background */
 #counter { position: absolute; z-index: 5; pointer-events: none; overflow: hidden; transition: transform .6s ease-out; }

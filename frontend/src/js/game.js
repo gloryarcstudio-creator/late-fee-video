@@ -122,6 +122,11 @@
     const bl = Math.ceil(ox / sc) + 1 + (st.classList.contains('live') ? 10 : 0), bt = Math.ceil(oy / sc) + 1 + (st.classList.contains('live') ? 10 : 0);
     const BW = W + 2 * bl, BH = H + 2 * bt, bs = Math.max(BW / 2560, BH / 1440), ix = -bl + (BW - 2560 * bs) / 2, iy = -bt + (BH - 1440 * bs) / 2;
     const co = $('counter').style; co.left = ix + 'px'; co.top = (iy + 1122 * bs) + 'px'; co.width = Math.min(800 * bs, tvLeft - 2 - ix) + 'px'; co.height = (318 * bs) + 'px';
+    // landscape: Del and his stand rest on that counter line at every aspect — his feet (98.8 % of the 520 px block) sit 48 px
+    // below its top edge, so his legs show down to the shoes and the stand shows its desk front
+    // the tape counter sits on the same counter line (4:3 screens put the line lower than 16:9, the counter used to float on his legs)
+    const line = iy + 1122 * bs;
+    $('del').style.top = port ? '' : (line + 48 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line + 7, 650) + 'px';
     if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); }
   }
 
@@ -547,7 +552,7 @@
   const SC0 = PORT0 ? Math.min(innerWidth / 720, innerHeight / 1280) : Math.min(innerWidth / 1280, innerHeight / 720);
   const DEL_M = Math.max(innerWidth, innerHeight) <= 960 || (PORT0 ? 430 : 520) * SC0 * (devicePixelRatio || 1) <= 460;
   const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`)
-    .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}del_idle_strip.webp`, 'assets/promo/logo_emblem.webp'],
+    .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}f/idle_0.webp`, 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
   // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
   function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); LIVE.start(); }, 600); }
