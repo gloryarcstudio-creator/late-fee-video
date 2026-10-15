@@ -107,12 +107,19 @@ button { font: inherit; color: inherit; }
 .btn { background: #34343a; border: 2px solid #5a5a62; color: var(--txt); cursor: pointer; padding: 8px 14px; font-size: 18px; letter-spacing: 1px; transition: transform .08s; }
 .btn:active:not(:disabled) { transform: scale(.95); }
 .btn:disabled { opacity: .35; cursor: default; }
-.btn.round { width: 58px; height: 58px; border-radius: 50%; padding: 0; font-size: 26px; border: 0; background: url(../assets/ui/ui_round.webp) center / 100% 100% no-repeat; color: #ddd; text-shadow: 0 1px 2px #000; }
+.btn.round { width: 58px; height: 58px; border-radius: 50%; padding: 0; font-size: 26px; border: 0; background: url(../assets/ui/ui_round.webp) center / 100% 100% no-repeat; color: #ddd; text-shadow: 0 1px 2px #000;
+  display: inline-flex; align-items: center; justify-content: center; }
+/* the button faces sit above the art's box centre (round: 4.6 % of the height, spin: 2.2 %), so the glyph is nudged up by a padding-bottom
+   of twice that; --gy is the per-size value */
+.btn.round, #spinBtn { --gy: 5.3px; padding-bottom: var(--gy); }
+#spinBtn { --gy: 11.5px; --gx: 4px; }
+/* per-glyph optical nudges, measured on the rendered ink */
+#soundBtn { --gy: 1.1px; } #menuBtn, #autoBtn { --gy: 3.1px; }
 .btn.on { border-color: var(--wild); color: var(--wild); box-shadow: 0 0 0 2px var(--wild), 0 0 14px var(--wild); }
 .btn.round.on { border-radius: 50%; }
 .btn.off { color: var(--dim); }
-#spinBtn { width: 124px; height: 124px; border-radius: 50%; font-size: 48px; border: 0; background: url(../assets/ui/ui_spin.webp) center / 100% 100% no-repeat; color: #2a2a2e; text-shadow: 0 1px 0 #fff8; }
-#buyBtn, #anteBtn { position: absolute; z-index: 5; width: 230px; height: 64px; font-size: 17px; background: none; border: 10px solid transparent; border-image: url(../assets/ui/ui_wide.webp) 60 fill stretch; }
+#spinBtn { width: 124px; height: 124px; border-radius: 50%; font-size: 48px; border: 0; background: url(../assets/ui/ui_spin.webp) center / 100% 100% no-repeat; color: #2a2a2e; text-shadow: 0 1px 0 #fff8; display: inline-flex; align-items: center; justify-content: center; padding: 0 0 var(--gy) var(--gx, 0px); }
+#buyBtn, #anteBtn { position: absolute; z-index: 5; width: 230px; height: 64px; font-size: 17px; background: none; border: 10px solid transparent; border-image: url(../assets/ui/ui_wide.webp) 60 fill stretch; padding: 5px 14px 11px; } /* the neon frame sits above the plate's centre: text raised 3px */
 #anteBtn.on { color: var(--scatter); box-shadow: none; }
 
 #hud { position: absolute; display: flex; align-items: center; gap: 8px; z-index: 10; }
@@ -122,7 +129,7 @@ button { font: inherit; color: inherit; }
 #betField { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
 #anteTag { position: absolute; right: -14px; top: -22px; width: 58px; height: 40px; background: url(../assets/ui/ui_tag.webp) center / contain no-repeat; pointer-events: none; }
 #betField > div { min-width: 120px; }
-#betField .btn.round { width: 54px; height: 54px; font-size: 26px; }
+#betField .btn.round { width: 54px; height: 54px; font-size: 26px; --gy: 5px; }
 
 #toast { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); background: #000; border: 2px solid #d84; padding: 12px 22px; font-size: 22px; z-index: 30; white-space: nowrap; }
 
@@ -189,10 +196,11 @@ button { font: inherit; color: inherit; }
 #stage.port #balField { order: 1; } #stage.port #winField { order: 2; }
 #stage.port #betField { order: 4; width: 380px; justify-content: space-between; }
 #stage.port #menuBtn { order: 6; } #stage.port #soundBtn { order: 7; }
-#stage.port #spinBtn { order: 8; width: 136px; height: 136px; }
+#stage.port #spinBtn { order: 8; width: 136px; height: 136px; --gy: 12.4px; --gx: 3.4px; }
+#stage.port #soundBtn { --gy: 2.8px; } #stage.port #menuBtn, #stage.port #autoBtn { --gy: 4.8px; }
 #stage.port #turboBtn { order: 9; } #stage.port #autoBtn { order: 10; }
-#stage.port .btn.round { width: 78px; height: 78px; align-self: center; }
-#stage.port #betField .btn.round { width: 64px; height: 64px; }
+#stage.port .btn.round { width: 78px; height: 78px; align-self: center; --gy: 7.2px; }
+#stage.port #betField .btn.round { width: 64px; height: 64px; --gy: 5.9px; }
 
 #stage.busy #spinBtn { border-color: #888; }
 #stage.bonus #screen { background: radial-gradient(ellipse at 50% 45%, #5a1f6e 0%, #2d1252 65%, #150a30 100%); }
