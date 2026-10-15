@@ -6,7 +6,7 @@
 #delFig .anim { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; aspect-ratio: 480 / 943; opacity: 0;
   background-repeat: no-repeat; background-position: 0 0; background-size: calc(var(--c, 48) * 100%) calc(var(--r, 1) * 100%); }
 #delFig .anim.on { opacity: 1; }
-#delFig .anim.xf { transition: opacity .15s linear; }
+#delFig .anim.xf { transition: opacity .2s linear; }
 @media (prefers-reduced-motion: reduce) { #delFig .anim { animation-play-state: paused; } }
 
 /* stand: returns counter behind Del's legs (landscape only); lamp glow flickers, mini CRT shows canvas static */
@@ -28,8 +28,11 @@
 #del.antic #delBlock { transform: translateX(8px) rotate(2deg); transform-origin: 50% 100%; }
 #del.win #delBlock { animation: delBounce .72s ease-out; }
 @keyframes delBounce { 0%, 50%, 100% { translate: 0 0; } 25%, 75% { translate: 0 -6px; } }
-#del.bigwin #delBlock::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(90deg, transparent 20%, rgba(255, 200, 110, .35) 100%); mix-blend-mode: screen; }
+/* big win: a warm glow behind the figure (soft ellipse, no box edges); it fades in and is cleared by 'calm' or after 6 s */
+#delBlock::before { content: ''; position: absolute; left: 50%; top: 18%; width: 140%; height: 70%; transform: translateX(-50%); pointer-events: none; z-index: -1;
+  border-radius: 50%; background: radial-gradient(ellipse at 50% 50%, rgba(255, 200, 110, .45) 0%, rgba(255, 170, 70, .18) 40%, transparent 70%);
+  opacity: 0; transition: opacity .4s ease; }
+#del.bigwin #delBlock::before { opacity: 1; }
 
 /* portrait: Del stands behind the TV, cut at the thighs — no stand, no shadow */
 #stage.port #delStand, #stage.port #delShadow { display: none; }

@@ -70,6 +70,10 @@ window.DEL = (function () {
     const left = sec - ((performance.now() - t0) / 1000) % sec;
     if (left > 0.4) step(true);
   }
+  // a transition or one-shot with more than ~0.6 s still to run is cut short with a crossfade when the game asks for something
+  // else, so Del follows fast rounds instead of finishing a clip that no longer matches the reels
+  function remaining() { const [, sec, loop] = CLIPS[clip]; return loop ? 0 : sec - (performance.now() - t0) / 1000; }
+  function cut() { if (clip && remaining() > 0.6) { clip = null; hold = 'idle'; step(true); return true; } return false; }
   function onEnd(e) { if (e.target === layers[cur] && !CLIPS[clip][2]) step(); }
   // a loop never ends on its own: when the request changes mid-loop, leave at the loop's next pass boundary (≤ one loop)
   function onIter(e) { if (e.target === layers[cur] && CLIPS[clip][2] && (shot || want !== hold)) step(); }
@@ -81,10 +85,13 @@ window.DEL = (function () {
       if (!loaded[`${state}_t`]) { load(`${state}_t`); return; }
       if (state === 'wow') { shot = null; hold = 'idle'; want = 'idle'; return play('wow_t', true); }   // big moment: interrupt now
       if (clip === `${state}_t`) return;                                                                 // already doing it
-      shot = state; want = 'idle'; leave(); return;
+      shot = state; want = 'idle'; if (!CLIPS[clip][2] && clip !== `${state}_t`) { cut(); return; } leave(); return;
     }
     if (!HOLD[state]) state = 'idle';
-    want = state; if (want !== hold) leave();
+    const target = CLIPS[clip][2] ? hold : CLIPS[clip][4];
+    want = state; if (want === target && !shot) return;
+    if (!CLIPS[clip][2]) { if (!/_t$/.test(clip) || state !== 'idle') cut(); return; }
+    if (want !== hold) leave();
   }
 
   // ---------- character block (stand, lamp, mini CRT, shadow) ----------
@@ -99,7 +106,7 @@ window.DEL = (function () {
     noiseT++;
   }
   // block events from the game: spin, stop, antic, win, bigwin, calm, bonus, base
-  let winT = 0;
+  let winT = 0, bigT = 0;
   function event(name) {
     if (!root) return;
     const b = root.classList;
@@ -107,7 +114,7 @@ window.DEL = (function () {
     else if (name === 'stop') { b.remove('spin', 'antic'); }
     else if (name === 'antic') { b.add('antic'); }
     else if (name === 'win') { b.remove('win'); void root.offsetWidth; b.add('win'); clearTimeout(winT); winT = setTimeout(() => b.remove('win'), 800); }
-    else if (name === 'bigwin') { b.add('bigwin'); }
+    else if (name === 'bigwin') { b.add('bigwin'); clearTimeout(bigT); bigT = setTimeout(() => b.remove('bigwin'), 6000); }
     else if (name === 'calm') { b.remove('bigwin', 'win', 'antic'); }
     else if (name === 'bonus') { b.add('rec'); }
     else if (name === 'base') { b.remove('rec'); }

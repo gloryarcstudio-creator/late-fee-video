@@ -18,7 +18,7 @@
   const S = {
     balance: 0, bets: [], betIdx: 0, ante: 0, busy: false, turbo: false, muted: AUDIO.isMuted(),
     auto: 0, autoCfg: null, autoStart: 0, jur: {}, inBonus: false, fsTotal: 0, mult: 2, capped: false,
-    bet: 0, mode: 'base', roundHadBonus: false, skip: false, ready: false, replay: P.replay, pendingRound: null,
+    bet: 0, mode: 'base', dry: 0, roundHadBonus: false, skip: false, ready: false, replay: P.replay, pendingRound: null,
   };
   window.__game = { S };
   const fast = () => !!window.__fast;
@@ -53,6 +53,9 @@
   // Del: pose state machine in del.js; block events ride along with the pose requests
   const DEL_EVENT = { spin: 'spin', idle: 'stop', lean: 'antic', cheer: 'win', wow: 'bigwin', bored: 'stop' };
   function del(state) { DEL.set(state); if (DEL_EVENT[state]) DEL.event(DEL_EVENT[state]); }
+  // Del cheers on wins of at least the bet; smaller wins only bounce the block, so his pose keeps up with fast spins.
+  // He turns bored only after three empty rounds in a row (every miss used to start a 2.5 s bored in/out that lagged the next spin).
+  function cheer(amount100) { if (amount100 >= 100) del('cheer'); else DEL.event('win'); }
 
   // win particles (tickets, popcorn, tape curls, sparkles)
   const FX = ['ticket', 'popcorn', 'tape', 'sparkle'].flatMap(k => [1, 2, 3, 4].map(i => `assets/fx/${k}_${i}.webp`));
@@ -167,7 +170,7 @@
       updateUI(); del('idle');
     },
     async winInfo(e) { S.lastWins = e.wins; await showWins(e.wins); },
-    async setWin(e) { popup(fmt(winMoney(e.amount))); del('cheer'); AUDIO.sfx(e.amount >= 500 ? 'win_m' : 'win_s'); await wait(250); },
+    async setWin(e) { popup(fmt(winMoney(e.amount))); cheer(e.amount); AUDIO.sfx(e.amount >= 500 ? 'win_m' : 'win_s'); await wait(250); },
     async setTotalWin(e) {
       S.roundWin = e.amount;
       $('winVal').textContent = e.amount > 0 ? fmt(winMoney(e.amount)) : '—';
@@ -179,7 +182,7 @@
       await wait(900);
     },
     async freeSpinTrigger(e) {
-      Reels.highlight(e.positions, 'hit-s'); sfx('trigger'); del('wow');
+      Reels.highlight(e.positions, 'hit-s'); sfx('trigger'); DEL.set('wow'); DEL.event('win');
       await wait(700);
       S.inBonus = true; S.roundHadBonus = true; S.fsTotal = e.totalFs; S.mult = START_MULT[S.mode] || 2;
       $('multVal').textContent = '×' + S.mult; $('tapeLog').textContent = ''; $('fsVal').textContent = `1/${e.totalFs}`;
@@ -296,7 +299,7 @@
         const tier = tierOf(winMoney(e.amount) / tierBase());
         if (tier) await bigWin(winMoney(e.amount));
       }
-      del(e.amount > 0 ? 'cheer' : 'bored');
+      if (e.amount > 0) { S.dry = 0; cheer(e.amount); } else if (++S.dry >= 3 && !S.inBonus) del('bored');
     },
   };
   // Big-win tiers are measured against what the player paid: base bet in base/ante, the buy price in buy modes.
