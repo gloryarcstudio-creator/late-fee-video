@@ -75,6 +75,27 @@
   // H.264 everywhere Stake runs; the VP9 copy covers builds without it (open-source Chromium)
   function vidSrc(base) { const v = document.createElement('video'); return base + (v.canPlayType('video/mp4; codecs="avc1.42E01E"') ? '.mp4' : '.webm'); }
   function playVideo(v) { try { v.muted = true; v.currentTime = 0; const r = v.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
+  // big win scenes (batch 08): a 4 s loop per tier, the key frame as its poster. The <video>s are made after the game is shown
+  // (posters ~130 KB load then), a loop downloads only when a win reaches its tier; reduced motion keeps the posters still.
+  const BW_FILE = { bigWin: 'big', megaWin: 'mega', epicWin: 'epic', cultWin: 'cult' };
+  const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const bwBase = tier => `assets/overlay/bw_${BW_FILE[tier] || 'big'}_`;
+  function bwScenes() {
+    const box = $('bigScene'); if (box.childElementCount) return;
+    for (const k of Object.keys(BW_FILE)) {
+      const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
+      v.dataset.tier = k; v.poster = bwBase(k) + 'key.webp'; v.src = vidSrc(bwBase(k) + 'loop'); box.appendChild(v);
+    }
+  }
+  function bwScene(tier, glitch) {
+    const box = $('bigScene');
+    for (const v of box.children) {
+      const on = v.dataset.tier === tier; if (on === v.classList.contains('on')) continue;
+      v.classList.toggle('on', on);
+      if (!on) { try { v.pause(); } catch (e) {} } else if (!stillMotion()) playVideo(v);
+    }
+    if (glitch) { $('bigWin').classList.remove('open'); box.classList.remove('glitch'); void box.offsetWidth; box.classList.add('glitch'); }
+  }
   function lateFeeBox(days, mult) {
     $('feeVal').textContent = '×' + mult; $('feeDays').textContent = String(days).padStart(2, '0');
     $('feeBox').classList.toggle('hot', mult > 1);
@@ -287,14 +308,14 @@
       const total = S.roundWin || e.amount;
       const tier = tierOf(winMoney(total) / tierBase());
       AUDIO.setMusic(null); AUDIO.stinger('stg_shift_over');
-      await banner(tier ? t(tier) : t('shiftOver'), fmt(winMoney(total)), 3500);
+      await banner(tier ? t(tier) : t('shiftOver'), fmt(winMoney(total)), 3500, tier && !fast() ? { video: vidSrc(bwBase(tier) + 'loop'), poster: bwBase(tier) + 'key.webp', scene: true } : undefined);
       S.inBonus = false; AUDIO.setMusic('mus_base'); DEL.event('base');
       ['fsBox', 'multBox', 'tapeLog', 'feeBox'].forEach(id => $(id).classList.add('hide')); Reels.band(null);
       tapeCounter(0); updateUI();
     },
     async wincap(e) {
       S.capped = true; Reels.unfreeze(); osd(''); AUDIO.setMusic(null); AUDIO.stinger('stg_maxwin');
-      particles(40); await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000, { img: 'assets/overlay/ov_maxwin.webp' });
+      particles(40); await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000, { img: 'assets/overlay/bw_max_key.webp', scene: true });
       AUDIO.setMusic(SCENE_MUSIC());
     },
     async finalWin(e) {
@@ -330,41 +351,58 @@
     Reels.clear(); Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions)); Reels.lines(wins);
   }
 
+  // media: { video } or { img }, full-bleed; { scene: true } lays it out like the big win scenes (whole frame on black, text on top)
   function banner(title, sub, ms, media) {
     $('bannerTitle').textContent = title; $('bannerSub').textContent = sub;
     const el = $('banner'), v = $('bannerVideo'), im = $('bannerImg');
     v.classList.toggle('hide', !(media && media.video)); im.classList.toggle('hide', !(media && media.img));
-    if (media && media.video) { if (v.getAttribute('src') !== media.video) v.src = media.video; playVideo(v); }
+    el.classList.toggle('scene', !!(media && media.scene)); v.loop = !!(media && media.scene);
+    if (media && media.video) { if (v.getAttribute('src') !== media.video) { v.poster = media.poster || ''; v.src = media.video; } if (!stillMotion()) playVideo(v); }
     if (media && media.img) im.src = media.img;
     el.classList.remove('hide');
     return waitTap(el, ms).then(() => { el.classList.add('hide'); try { v.pause(); } catch (e) {} });
   }
 
+  // Count-up paced by tier: each tier the win reaches gets its own stretch of the count (and its scene), so a CULT win shows
+  // BIG, MEGA and EPIC for a beat each instead of flashing past them; the last stretch eases out. First tap jumps to the total.
+  const BW_SEG = { bigWin: 1600, megaWin: 1200, epicWin: 1200, cultWin: 1400 };
   function bigWin(amount) {
-    const el = $('bigWin'); el.classList.remove('hide'); AUDIO.stinger('bw_tier'); AUDIO.setMusic('mus_bigwin'); del('wow'); playVideo($('bigVideo')); particles();
-    $('bigBadge').className = tierOf(amount / tierBase()) || 'bigWin';
+    const el = $('bigWin'), base = tierBase(), x = amount / base;
     const dec = I18N.decimalsFor(amount, I18N.currency());
-    const base = tierBase();
-    if (fast()) { $('bigTitle').textContent = t(tierOf(amount / base)); $('bigAmt').textContent = money(amount, dec); el.classList.add('hide'); AUDIO.setMusic(SCENE_MUSIC()); return Promise.resolve(); }
+    if (fast()) { del('wow'); $('bigTitle').textContent = t(tierOf(x)); $('bigAmt').textContent = money(amount, dec); return Promise.resolve(); }
+    bwScenes();
+    const ladder = [], up = TIERS.slice().reverse();
+    up.forEach(([th, k], i) => { if (i && x < th) return; const nx = up[i + 1] ? up[i + 1][0] : Infinity; ladder.push({ k, lo: i ? th * base : 0, hi: Math.min(x, nx) * base, d: BW_SEG[k] }); });
+    ladder[ladder.length - 1].d += 700;
+    // fetch the loops this win will reach while BIG plays
+    for (const v of $('bigScene').children) if (ladder.some(l => l.k === v.dataset.tier) && !v.dataset.req && !stillMotion()) { v.dataset.req = 1; v.preload = 'auto'; v.load(); }
+    el.dataset.tier = ''; el.classList.remove('hide', 'open'); void el.offsetWidth; el.classList.add('open');
+    AUDIO.stinger('bw_tier'); AUDIO.setMusic('mus_bigwin'); del('wow'); particles();
     AUDIO.loop('count_loop'); let lastTier = null;
     return new Promise(res => {
-      const dur = Math.min(6000, 1500 + Math.log10(amount / base) * 1500) * (S.turbo ? 0.5 : 1);
-      const t0 = performance.now(); let skipped = false, ended = false;
-      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); try { $('bigVideo').pause(); } catch (e) {} AUDIO.setMusic(SCENE_MUSIC()); DEL.event('calm'); res(); };
+      const sp = S.turbo ? 0.5 : 1;
+      let seg = 0, s0 = performance.now(), skipped = false, ended = false;
+      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); for (const v of $('bigScene').children) { try { v.pause(); } catch (e) {} } AUDIO.setMusic(SCENE_MUSIC()); DEL.event('calm'); res(); };
       const onTap = () => { if (!skipped) { skipped = true; } else end(); };
       const onKey = e => { if (e.code === 'Space') { e.preventDefault(); if (!S.jur.disabledSpacebar) onTap(); } };
       el.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey);
       (function frame(now) {
-        const k = skipped ? 1 : Math.min(1, (now - t0) / dur);
-        const v = amount * (1 - Math.pow(1 - k, 2));
-        const tier = tierOf(v / base) || 'bigWin';
-        if (lastTier && tier !== lastTier) AUDIO.sfx('bw_tier');
-        lastTier = tier;
-        $('bigTitle').textContent = t(tier); $('bigBadge').className = tier;
+        let v, done = skipped;
+        if (skipped) { seg = ladder.length - 1; v = amount; }
+        else {
+          while (seg < ladder.length - 1 && now - s0 >= ladder[seg].d * sp) { s0 += ladder[seg].d * sp; seg++; }
+          const L = ladder[seg], last = seg === ladder.length - 1, k = Math.min(1, Math.max(0, (now - s0) / (L.d * sp)));
+          v = L.lo + (L.hi - L.lo) * (last ? 1 - Math.pow(1 - k, 2) : k); done = last && k >= 1;
+        }
+        const tier = ladder[seg].k;
+        if (tier !== lastTier) {
+          if (lastTier) { AUDIO.sfx('bw_tier'); particles(14); }
+          bwScene(tier, !!lastTier); el.dataset.tier = tier; $('bigTitle').textContent = t(tier); lastTier = tier;
+        }
         $('bigAmt').textContent = money(v, dec);
-        if (k < 1) requestAnimationFrame(frame);
+        if (!done) requestAnimationFrame(frame);
         else { AUDIO.stop('count_loop'); AUDIO.sfx('bw_end'); setTimeout(end, S.auto ? 900 : 2200); }
-      })(t0);
+      })(s0);
     });
   }
 
@@ -555,7 +593,7 @@
     .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}f/idle_0.webp`, 'assets/promo/logo_emblem.webp'],
       ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
   // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
-  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); LIVE.start(); }, 600); }
+  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); LIVE.start(); bwScenes(); }, 600); }
   // living scene (batch 06): looped background videos, the TV-frame loop and pointer parallax. Desktop only; phones, portrait,
   // reduced motion and the QA fast mode keep the stills (no <video> is created there, so nothing downloads).
   const LIVE = (() => {

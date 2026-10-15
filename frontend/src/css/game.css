@@ -142,17 +142,33 @@ button { font: inherit; color: inherit; }
 .overlay { position: absolute; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; z-index: 20; overflow: hidden; }
 .overlay video, .overlay img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ov-inner { position: relative; }
-#bigBadge { width: 220px; height: 220px; margin: 0 auto 8px; background: url(../assets/overlay/badge_big.webp) center / contain no-repeat; }
-/* the rating sticker has a blank centre (no text in art): stars per tier are drawn in code */
-#bigBadge { display: flex; align-items: center; justify-content: center; font-size: 76px; line-height: 1; letter-spacing: -4px; color: #fff4c8; text-shadow: 0 2px 0 #000, 0 0 10px #000; }
-#bigBadge::after { content: "★"; } #bigBadge.megaWin::after { content: "★★"; } #bigBadge.epicWin::after { content: "★★★"; } #bigBadge.epicWin::after { font-size: 64px; } #bigBadge.cultWin::after { content: "★★★★"; font-size: 50px; }
-#bigBadge.megaWin { background-image: url(../assets/overlay/badge_mega.webp); } #bigBadge.epicWin { background-image: url(../assets/overlay/badge_epic.webp); } #bigBadge.cultWin { background-image: url(../assets/overlay/badge_cult.webp); }
+/* big win scenes (batch 08): one 16:9 loop per tier on black, the object in the lower half and the text above it. Landscape fits
+   the whole frame (contain: the black edges merge with the overlay); portrait shows a 1180-px-wide centre crop below the text */
+.overlay.scene { background: #000; }
+.overlay.scene .ov-inner { position: absolute; top: 6%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 96%; }
+#stage.port .overlay.scene .ov-inner { top: 13%; }
+#bigScene { position: absolute; inset: 0; pointer-events: none; }
+#bigScene video, .overlay.scene #bannerImg, .overlay.scene #bannerVideo { object-fit: contain; }
+#bigScene video { opacity: 0; } #bigScene video.on { opacity: 1; }
+#stage.port #bigScene, #stage.port .overlay.scene #bannerImg, #stage.port .overlay.scene #bannerVideo { inset: auto; left: 50%; top: 58%; width: 1180px; height: 664px; transform: translate(-50%, -50%); }
+/* code-drawn entrance and tier switch (no intro clips): the tape "powers on" from a bright line, a tier change tears and shifts */
+#bigWin.open #bigScene video.on { animation: bwOn .5s cubic-bezier(.2, .7, .3, 1); }
+@keyframes bwOn { 0% { transform: scale(1.06, .006); filter: brightness(5); } 30% { transform: scale(1.03, .03); filter: brightness(3.5); } 100% { transform: none; filter: none; } }
+#bigScene.glitch video.on { animation: bwGlitch .36s steps(1) both; }
+@keyframes bwGlitch { 0% { transform: translateX(-16px); filter: hue-rotate(70deg) contrast(1.7) brightness(1.6); } 18% { transform: translateX(11px) skewX(-5deg); filter: hue-rotate(-50deg) saturate(2.2); }
+  36% { transform: translate(-7px, 4px); filter: brightness(2.4) contrast(2); } 54% { transform: translateX(5px) skewX(2deg); filter: hue-rotate(30deg); } 72% { transform: translateX(-2px); filter: none; } 100% { transform: none; filter: none; } }
+#bigScene::after { content: ""; position: absolute; inset: 0; opacity: 0; mix-blend-mode: screen;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.22) 0 2px, transparent 2px 7px), linear-gradient(transparent 38%, rgba(120,220,255,.5) 40% 43%, transparent 45% 62%, rgba(255,90,200,.45) 63% 65%, transparent 67%); }
+#bigScene.glitch::after { animation: bwTear .36s steps(1) both; }
+@keyframes bwTear { 0% { opacity: 1; transform: translateY(-6%); } 25% { opacity: .8; transform: translateY(9%); } 50% { opacity: .9; transform: translateY(-3%); } 75% { opacity: .35; transform: translateY(14%); } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #bigWin.open #bigScene video.on, #bigScene.glitch video.on, #bigScene.glitch::after { animation: none; } }
 #banner .ov-inner, #bigWin .ov-inner { text-shadow: 0 2px 8px #000, 0 0 24px #000, 0 0 40px #000; }
 /* readable over the bright big-win video: dark oval scrim behind the text, hard outline, particles stay behind the text */
 .ov-inner::before { content: ""; position: absolute; left: 50%; top: 50%; width: 170%; height: 150%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
   background: radial-gradient(closest-side, rgba(0,0,0,.78), rgba(0,0,0,.55) 60%, rgba(0,0,0,0)); }
 #bigTitle, #bannerTitle, #bigAmt, #bannerSub { text-shadow: -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 4px 0 #000, 0 0 18px #000, 0 0 36px #000; }
 #bigTitle { color: #ffd34a; } #bigAmt { color: #fff; font-weight: 700; }
+#bigWin[data-tier=megaWin] #bigTitle { color: #ff7ad9; } #bigWin[data-tier=epicWin] #bigTitle { color: #7fe6ff; } #bigWin[data-tier=cultWin] #bigTitle { color: #ffe9a8; }
 .ov-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .ov-fx .p { position: absolute; top: -80px; width: 52px; height: 52px; background: center / contain no-repeat; animation: fall var(--d) linear forwards; }
 #bigWin .ov-inner { z-index: 1; }
