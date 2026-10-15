@@ -2,7 +2,7 @@
     "workingName": "Late Fee Video",
     "frontendConfig": {
         "file": "fe_config.json",
-        "sha256": "707aae28d0559844049776b5e586cc86507a31c151a7957a48acfa7fafcd0277"
+        "sha256": "0b7f4f4e0df65b7f13bb4126815e05c0d32050d96c99da28c1a4d207677c28cf"
     },
     "gameID": "late_fee_video",
     "rtp": 96.0,
@@ -11,7 +11,7 @@
     "providerNumber": 0,
     "standardForceFile": {
         "file": "force.json",
-        "sha256": "a291f8f336c2f360f108700ca6454f8cf8832f8350c250687c4c87a658363499"
+        "sha256": "1e211b02e14aa759c256c842bcb9a3b589c8b6dd7e36c79aff9ef3a0b596b5e9"
     },
     "bookShelfConfig": [
         {
@@ -19,7 +19,7 @@
             "tables": [
                 {
                     "file": "lookUpTable_base_0.csv",
-                    "sha256": "3523ed79be887e325cca46be5555d6c6275920ca205583404606c1d1cc20fa51"
+                    "sha256": "da38269f6094f5974870be8a059b489e61fb186dd1090ace773aae2f68c9a53b"
                 }
             ],
             "cost": 1.0,
@@ -32,36 +32,61 @@
             "maxWin": 15000.0,
             "booksFile": {
                 "file": "books_base.jsonl.zst",
-                "sha256": "0424f541a58acc5791075caab3453e8d43be69c8682adbf2b73fd0f8447d275a"
+                "sha256": "e3293742c0253aee26455f5c005cce72cb49c7e659a714206556e2065ccd847d"
             },
             "forceFile": {
                 "file": "force_record_base.json",
-                "sha256": "c064be1cde2ad9cd7901bc33bacb31904cb7f320e9295d8ce7e6160b66a83daa"
+                "sha256": "f9408b18db86e0943bf7361e8db0bac938fdd6e45e4e5adc3acc5c1e86ec94df"
             }
         },
         {
-            "name": "ante",
+            "name": "ante2",
             "tables": [
                 {
-                    "file": "lookUpTable_ante_0.csv",
-                    "sha256": "08b58f0ca3e2d7f694abead1abba0a8c6292db32a459a898e970feb24d27f8c8"
+                    "file": "lookUpTable_ante2_0.csv",
+                    "sha256": "814f86fe0389828bb46c09f47852e2047fcd0d96a226870e2546ed6acee655cc"
                 }
             ],
-            "cost": 3.0,
+            "cost": 2.0,
             "rtp": 0.96,
-            "std": 9.53,
+            "std": 10.81,
             "bookLength": 149984,
             "feature": true,
             "autoEndRoundDisabled": false,
             "buyBonus": false,
             "maxWin": 15000.0,
             "booksFile": {
-                "file": "books_ante.jsonl.zst",
-                "sha256": "37be91d6e3a6bd86cb28227896a24ca74997a535e9ae1a21f7fa5e32f8259440"
+                "file": "books_ante2.jsonl.zst",
+                "sha256": "430750a8d3c89c60ca708da47158864cfaa022aa3a1d5ec66d7b5ca8de817eca"
             },
             "forceFile": {
-                "file": "force_record_ante.json",
-                "sha256": "748b3ce0bc981e90e23a7c9c80405fd47eb3ffbdc7ea33df2642ce7722c029f8"
+                "file": "force_record_ante2.json",
+                "sha256": "d6e3185fca917f078fef2e0e470c53b7006eaeb3ad4e7d79f1b20fbd0cb62716"
+            }
+        },
+        {
+            "name": "ante4",
+            "tables": [
+                {
+                    "file": "lookUpTable_ante4_0.csv",
+                    "sha256": "538cfe65b3f01eabc4773c7e9595a3da256fdfd7c11e31932219134bd6dff77f"
+                }
+            ],
+            "cost": 4.0,
+            "rtp": 0.96,
+            "std": 8.45,
+            "bookLength": 149984,
+            "feature": true,
+            "autoEndRoundDisabled": false,
+            "buyBonus": false,
+            "maxWin": 15000.0,
+            "booksFile": {
+                "file": "books_ante4.jsonl.zst",
+                "sha256": "84c93bba594c11227127d55eb34d4bcf23301926d027a4cbf9eabca5d3e58741"
+            },
+            "forceFile": {
+                "file": "force_record_ante4.json",
+                "sha256": "ac6a23e55312a5d2e8a9b06ee28ce81ac64f7d08c4d913d0dddeef9c85ab5dce"
             }
         },
         {
@@ -82,7 +107,7 @@
             "maxWin": 15000.0,
             "booksFile": {
                 "file": "books_bonus.jsonl.zst",
-                "sha256": "ced3fd92760dec800ff9266c40253263c2848e0f4bee78f0e3b70490df67e7e8"
+                "sha256": "542cc51050082bd8d28249dbb42b7f8a914147c60abc2c2e60440ab8719abcab"
             },
             "forceFile": {
                 "file": "force_record_bonus.json",
@@ -107,7 +132,7 @@
             "maxWin": 15000.0,
             "booksFile": {
                 "file": "books_double.jsonl.zst",
-                "sha256": "5a7c9c51a85c951b68913eeec405ffeaea20b4ea0d16a24b8cb4577b4bd4492e"
+                "sha256": "338784db8cc852f9d636cda5b544bafeb19faf9ba75bc5888ad64c6798405d81"
             },
             "forceFile": {
                 "file": "force_record_double.json",
@@ -132,11 +157,61 @@
             "maxWin": 15000.0,
             "booksFile": {
                 "file": "books_director.jsonl.zst",
-                "sha256": "ceb3f771878da96b847cc75e76919984a03dee29038a729ba091dcf9f7266df7"
+                "sha256": "f34b7ca37b3b86e9a2bc9f860c7c1abb89e177b1d26a779ce91830cf46d87ecb"
             },
             "forceFile": {
                 "file": "force_record_director.json",
                 "sha256": "41b16903096264681e56fe7646787868573f2f905c3d3ad378e7a97823617724"
+            }
+        },
+        {
+            "name": "latefee",
+            "tables": [
+                {
+                    "file": "lookUpTable_latefee_0.csv",
+                    "sha256": "1d17c40b5770a6c59da1164c681380676c9876433eae77f28b0d4836d5feb914"
+                }
+            ],
+            "cost": 200.0,
+            "rtp": 0.96,
+            "std": 1.18,
+            "bookLength": 60000,
+            "feature": false,
+            "autoEndRoundDisabled": false,
+            "buyBonus": true,
+            "maxWin": 15000.0,
+            "booksFile": {
+                "file": "books_latefee.jsonl.zst",
+                "sha256": "9fe07edb13e7f621be9fb71ee20087d2112d2f7f909b4b7bb06c7b258654dcef"
+            },
+            "forceFile": {
+                "file": "force_record_latefee.json",
+                "sha256": "664c747bfd6c57573cf50c038833dce2b132f855d58d5f27f0caedede6be165e"
+            }
+        },
+        {
+            "name": "tracking",
+            "tables": [
+                {
+                    "file": "lookUpTable_tracking_0.csv",
+                    "sha256": "97460e23723a47c34e935a37af17851ae093225d2754b87007160604658617d8"
+                }
+            ],
+            "cost": 400.0,
+            "rtp": 0.96,
+            "std": 0.7,
+            "bookLength": 60000,
+            "feature": false,
+            "autoEndRoundDisabled": false,
+            "buyBonus": true,
+            "maxWin": 15000.0,
+            "booksFile": {
+                "file": "books_tracking.jsonl.zst",
+                "sha256": "1f19c10d5edf2f20bebf96a014ca4de4e2f64eeb0147dd6f4a36a45c0d0f007b"
+            },
+            "forceFile": {
+                "file": "force_record_tracking.json",
+                "sha256": "55c288859ec8248dc887210a2c72b1577f5c9b575e98ffdea7c5121fd7c6cf77"
             }
         }
     ]

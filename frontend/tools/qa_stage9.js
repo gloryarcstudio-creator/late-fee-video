@@ -84,12 +84,12 @@ async function t242() {
 
 async function t187() {
   const ev = []; let ok = true;
-  for (const ante of [false, true]) {
+  for (const ante of [0, 2, 4]) {
     await ctl(DEFAULT);
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 592 } });
     let p = await open(Q(), { ctx, expectErrors: true }); await start(p); await fast(p);
     await p.click('#betPlus'); // $2 (not the default)
-    if (ante) await p.click('#anteBtn');
+    for (let k = 0; k < ante / 2; k++) await p.click('#anteBtn');
     await p.route('**/wallet/end-round', r => r.abort());
     await ctl('force=win'); await p.click('#spinBtn'); await idle(p);
     const mid = await (await fetch(`${BASE}/wallet/authenticate`, { method: 'POST', body: JSON.stringify({ sessionID: 'sess-ok' }) })).json();
@@ -100,9 +100,9 @@ async function t187() {
     const endSent = ends(b).length === 1;
     await ctl('force=zero'); await p.keyboard.press('Space'); await idle(p);
     b = await bodies(); const next = plays(b)[0] || { body: {} };
-    const good = mid.round && mid.round.active && st.bet === 2 && st.ante === ante && endSent && next.body.amount === 2000000 && next.body.mode === (ante ? 'ante' : 'base');
+    const good = mid.round && mid.round.active && st.bet === 2 && st.ante === ante && endSent && next.body.amount === 2000000 && next.body.mode === (ante ? 'ante' + ante : 'base');
     ok = ok && good;
-    ev.push(`${ante ? 'ante' : 'base'}: open round ${mid.round ? mid.round.mode + ' ' + mid.round.amount : 'none'} → restored bet ${st.betVal}, ante ${st.ante}, "${st.toast}", end-round sent ${endSent}, next play ${JSON.stringify(next.body)}`);
+    ev.push(`${ante ? 'ante' + ante : 'base'}: open round ${mid.round ? mid.round.mode + ' ' + mid.round.amount : 'none'} → restored bet ${st.betVal}, ante ${st.ante}, "${st.toast}", end-round sent ${endSent}, next play ${JSON.stringify(next.body)}`);
     await p.close(); await ctx.close();
   }
   pass('187', 'active round restored with its bet and ante, end-round sent', ok, ev.join(' | '));
@@ -119,9 +119,9 @@ async function t221_222_31_104_228_107() {
 
   // modes sent exactly as index.json names
   const sent = new Set();
-  for (const m of ['base', 'ante', 'bonus', 'double', 'director']) { await ctl('reset=1'); await p.evaluate(m => window.__game.spin(m), m); await idle(p); plays(await bodies()).forEach(x => sent.add(x.body.mode)); }
+  for (const m of ['base', 'ante2', 'ante4', 'bonus', 'double', 'director', 'latefee', 'tracking']) { await ctl('reset=1'); await p.evaluate(m => window.__game.spin(m), m); await idle(p); plays(await bodies()).forEach(x => sent.add(x.body.mode)); }
   const names = Object.keys(scan);
-  pass('mode', 'play.mode strings match index.json exactly', [...sent].every(m => names.includes(m)) && sent.size === 5, `sent ${[...sent].join(',')}; index.json ${names.join(',')}`);
+  pass('mode', 'play.mode strings match index.json exactly', [...sent].every(m => names.includes(m)) && sent.size === 8, `sent ${[...sent].join(',')}; index.json ${names.join(',')}`);
 
   // [31] buy confirmation with price
   await ctl('reset=1&force=zero');
@@ -192,12 +192,12 @@ async function rulesCheck() {
   }
   pass('24/25', 'RTP and max win per mode in rules (from lookup tables)', ok, ev.join('; '));
   const costs = Object.entries(scan).filter(([m]) => m !== 'base').every(([m, s]) => t.includes(s.cost.toLocaleString('en') + '×'));
-  pass('26/27', 'every mode with its cost and description', costs && /Night Shift/.test(t) && /Double Feature/.test(t) && /Director's Cut/.test(t) && /Late Night Rate/.test(t), 'mode table: ' + (costs ? 'costs 3×, 100×, 300×, 600× present' : 'COST MISSING'));
+  pass('26/27', 'every mode with its cost and description', costs && /Night Shift/.test(t) && /Double Feature/.test(t) && /Director's Cut/.test(t) && /Evening Rate/.test(t) && /Late Night Rate/.test(t) && /Late Fee/.test(t) && /Tracking Band/.test(t), 'mode table: ' + (costs ? 'costs 3×, 100×, 300×, 600× present' : 'COST MISSING'));
   const pay = /Paytable/.test(t) && /WILD/.test(t) && /KEY \(scatter\)/.test(t) && (await p.$$eval('.pl-mini', e => e.length)) === 20;
   pass('29', 'paytable, wild/scatter, free spins, retrigger, paylines', pay && /up to 50 free spins/.test(t), `paylines drawn ${await p.$$eval('.pl-mini', e => e.length)}; retrigger text ${/2 KEY add 3/.test(t)}`);
   const DISC = 'Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and © 2026 Engine.';
   pass('185', 'disclaimer verbatim', t.includes(DISC), t.includes(DISC) ? 'exact match' : 'not found');
-  const btns = ['▶', '− / +', 'LATE NIGHT RATE', 'VIDEO CATALOG', '⟳', '»', '♪', '☰', '✕'].filter(b => !t.includes(b));
+  const btns = ['▶', '− / +', 'NIGHT RATE', 'VIDEO CATALOG', '⟳', '»', '♪', '☰', '✕'].filter(b => !t.includes(b));
   pass('235', 'every on-screen button explained', btns.length === 0 && /space bar/.test(t), btns.length ? 'missing ' + btns.join(' ') : 'spin, bet −/+, ante, catalog, autoplay, turbo, sound, menu, close, space bar, tap-to-skip');
   await p.close();
   // jurisdiction flags

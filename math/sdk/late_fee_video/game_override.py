@@ -11,6 +11,10 @@ class GameStateOverride(GameExecutables):
         self.tape = []
         self.rew_mult_index = 0
         self.force_rew_every = 0
+        self.late_fee = False
+        self.late_days = 0
+        self.band = False
+        self.band_row = None
 
     def assign_special_sym_function(self):
         self.special_symbol_functions = {}

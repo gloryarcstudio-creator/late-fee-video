@@ -129,7 +129,9 @@ def buy_like(cfg, mode):
     mean = sum(pays) / len(pays)
 
     def tilted_mean(lam):
-        ws = [math.exp(lam * (p - mean) / 10000) for p in pays]
+        xs = [lam * (p - mean) / 10000 for p in pays]
+        top = max(xs)
+        ws = [math.exp(x - top) for x in xs]  # log-space shift keeps large tilts finite
         return sum(w * p for w, p in zip(ws, pays)) / sum(ws), ws
 
     lo, hi = -50.0, 50.0
@@ -170,7 +172,7 @@ if __name__ == "__main__":
     cfg = GameConfig()
     gamestate = GameState(cfg)
     costs = {bm.get_name(): bm.get_cost() for bm in cfg.bet_modes}
-    plan = {"base": ("base", "BR0"), "ante": ("base", "ANTE"), "bonus": ("buy",), "double": ("buy",), "director": ("buy",)}
+    plan = {"base": ("base", "BR0"), "ante2": ("base", "ANTE2"), "ante4": ("base", "ANTE4"), "bonus": ("buy",), "double": ("buy",), "director": ("buy",), "latefee": ("buy",), "tracking": ("buy",)}
     results = []
     for mode, spec in plan.items():
         if spec[0] == "base":
@@ -187,8 +189,8 @@ if __name__ == "__main__":
         print(mode, {k: (round(v, 6) if isinstance(v, float) else v) for k, v in s.items() if k != "dist"})
         print("   dist %:", [round(d, 4) for d in s["dist"]])
     generate_configs(gamestate)
-    execute_all_tests(cfg)
     import json
 
     with open(os.path.join(cfg.library_path, "weight_summary.json"), "w", encoding="UTF-8") as f:
         json.dump(results, f, indent=1)
+    execute_all_tests(cfg)  # run from the math-sdk root: the SDK checks read games/<game>/library by relative path

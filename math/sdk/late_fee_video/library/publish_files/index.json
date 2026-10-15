@@ -7,10 +7,16 @@
             "weights": "lookUpTable_base_0.csv"
         },
         {
-            "name": "ante",
-            "cost": 3.0,
-            "events": "books_ante.jsonl.zst",
-            "weights": "lookUpTable_ante_0.csv"
+            "name": "ante2",
+            "cost": 2.0,
+            "events": "books_ante2.jsonl.zst",
+            "weights": "lookUpTable_ante2_0.csv"
+        },
+        {
+            "name": "ante4",
+            "cost": 4.0,
+            "events": "books_ante4.jsonl.zst",
+            "weights": "lookUpTable_ante4_0.csv"
         },
         {
             "name": "bonus",
@@ -29,6 +35,18 @@
             "cost": 600.0,
             "events": "books_director.jsonl.zst",
             "weights": "lookUpTable_director_0.csv"
+        },
+        {
+            "name": "latefee",
+            "cost": 200.0,
+            "events": "books_latefee.jsonl.zst",
+            "weights": "lookUpTable_latefee_0.csv"
+        },
+        {
+            "name": "tracking",
+            "cost": 400.0,
+            "events": "books_tracking.jsonl.zst",
+            "weights": "lookUpTable_tracking_0.csv"
         }
     ]
 }

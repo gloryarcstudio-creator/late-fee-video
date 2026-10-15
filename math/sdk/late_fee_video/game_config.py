@@ -25,6 +25,9 @@ NUM_LINES = 20
 SCATTER_PAY = {3: 2.0, 4: 10.0, 5: 50.0}  # x total bet
 REWIND_MULTS = [2, 3, 5, 10]
 MAX_FREE_SPINS = 50
+LATE_FEE_MULTS = [1, 2, 4, 6, 10, 15, 25]
+BAND_MULTS = [1, 2, 3]
+BAND_REELS = [1, 2, 3]
 WINCAP = 15000.0
 TARGET_RTP = 0.96
 
@@ -107,13 +110,16 @@ class GameConfig(Config):
         self.scatter_pay = SCATTER_PAY
         self.rewind_mults = REWIND_MULTS
         self.max_free_spins = MAX_FREE_SPINS
+        self.late_fee_mults = LATE_FEE_MULTS
+        self.band_mults = BAND_MULTS
+        self.band_reels = BAND_REELS
         self.freespin_triggers = {
             self.basegame_type: {3: 10, 4: 12, 5: 15},
             self.freegame_type: {2: 3, 3: 5, 4: 5, 5: 5},
         }
         self.anticipation_triggers = {self.basegame_type: 2, self.freegame_type: 2}
 
-        reels = {"BR0": "BR0.csv", "ANTE": "ANTE.csv", "FR0": "FR0.csv", "FRCAP": "FRCAP.csv"}
+        reels = {"BR0": "BR0.csv", "ANTE2": "ANTE2.csv", "ANTE4": "ANTE4.csv", "FR0": "FR0.csv", "FRCAP": "FRCAP.csv", "FRB": "FRB.csv"}
         self.reels = {}
         for r, f in reels.items():
             self.reels[r] = self.read_reels_csv(os.path.join(self.reels_path, f))
@@ -121,7 +127,8 @@ class GameConfig(Config):
         self.padding_reels[self.freegame_type] = self.reels["FR0"]
 
         base_triggers = scatter_trigger_weights(self.reels["BR0"])
-        ante_triggers = scatter_trigger_weights(self.reels["ANTE"])
+        ante2_triggers = scatter_trigger_weights(self.reels["ANTE2"])
+        ante4_triggers = scatter_trigger_weights(self.reels["ANTE4"])
         pause = {self.basegame_type: 0.25, self.freegame_type: 0.20}
         pause_hot = {self.basegame_type: 0.25, self.freegame_type: 0.6}
 
@@ -137,7 +144,7 @@ class GameConfig(Config):
             c.update(extra)
             return c
 
-        def spin_modes(base_reel, triggers, buy=None):
+        def spin_modes(base_reel, triggers, buy=None, free_reel="FR0"):
             """Distributions for one bet mode. `buy` = dict of forced feature settings."""
             extra = buy or {}
             dists = [
@@ -150,7 +157,7 @@ class GameConfig(Config):
                 Distribution(
                     criteria="freegame",
                     quota=0.999 if buy else 0.15,
-                    conditions=cond(base_reel, "FR0", True, False, {3: 1} if buy else triggers, **extra),
+                    conditions=cond(base_reel, free_reel, True, False, {3: 1} if buy else triggers, **extra),
                 ),
             ]
             if not buy:
@@ -166,8 +173,12 @@ class GameConfig(Config):
                 is_feature=True, is_buybonus=False, distributions=spin_modes("BR0", base_triggers),
             ),
             BetMode(
-                name="ante", cost=3.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
-                is_feature=True, is_buybonus=False, distributions=spin_modes("ANTE", ante_triggers),
+                name="ante2", cost=2.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
+                is_feature=True, is_buybonus=False, distributions=spin_modes("ANTE2", ante2_triggers),
+            ),
+            BetMode(
+                name="ante4", cost=4.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
+                is_feature=True, is_buybonus=False, distributions=spin_modes("ANTE4", ante4_triggers),
             ),
             BetMode(
                 name="bonus", cost=100.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
@@ -183,6 +194,16 @@ class GameConfig(Config):
                 name="director", cost=600.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
                 is_feature=False, is_buybonus=True,
                 distributions=spin_modes("BR0", None, buy={"fs_amount": 13, "force_rew_every": 2, "mult_start": 2}),
+            ),
+            BetMode(
+                name="latefee", cost=200.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
+                is_feature=False, is_buybonus=True,
+                distributions=spin_modes("BR0", None, buy={"fs_amount": 12, "late_fee": True}),
+            ),
+            BetMode(
+                name="tracking", cost=400.0, rtp=self.rtp, max_win=WINCAP, auto_close_disabled=False,
+                is_feature=False, is_buybonus=True,
+                distributions=spin_modes("BR0", None, buy={"fs_amount": 8, "band": True}, free_reel="FRB"),
             ),
         ]
 

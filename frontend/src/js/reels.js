@@ -124,6 +124,16 @@
     },
     freeze(reels) { cols.forEach((c, r) => c.reel.classList.toggle('frozen', reels.includes(r))); },
     unfreeze() { cols.forEach(c => c.reel.classList.remove('frozen')); },
+    // Tracking Band: a VHS tracking strip over the wild cells of one row (positions in book rows, 1-3 visible); null removes it
+    band(positions) {
+      let el = root.querySelector('.band');
+      if (!positions || !positions.length) { if (el) el.remove(); return; }
+      if (!el) { el = document.createElement('div'); el.className = 'band'; root.appendChild(el); }
+      const reels = positions.map(p => p.reel), r0 = Math.min(...reels), r1 = Math.max(...reels);
+      el.style.top = `calc(${positions[0].row - 1} * var(--cell))`;
+      el.style.left = `calc(${r0} * (var(--cell) + var(--gap)))`;
+      el.style.width = `calc(${r1 - r0 + 1} * var(--cell) + ${r1 - r0} * var(--gap))`;
+    },
     // Draw payline polylines for wins (meta.lineIndex is 1-based, as in game_config.paylines).
     lines(wins) {
       const W = N * cell + (N - 1) * gap, H = 3 * cell;

@@ -92,3 +92,24 @@ def second_take_event(gamestate, frozen_reels, wins, mult, win):
 
 def rewind_mult_event(gamestate, mult):
     _add(gamestate, {"type": "rewindMult", "mult": mult})
+
+
+def late_fee_event(gamestate, days, mult):
+    _add(gamestate, {"type": "lateFee", "days": days, "mult": mult})
+
+
+def late_fee_paid_event(gamestate, days, mult, win):
+    _add(gamestate, {"type": "lateFeePaid", "days": days, "mult": mult, "win": _amt(gamestate, win)})
+
+
+def tracking_band_event(gamestate, row, mult, positions):
+    _add(gamestate, {
+        "type": "trackingBand",
+        "row": row + 1,
+        "mult": mult,
+        "positions": [{"reel": p[0], "row": p[1] + 1} for p in positions],
+    })
+
+
+def band_win_event(gamestate, mult, lines, win):
+    _add(gamestate, {"type": "bandWin", "mult": mult, "lineIndexes": lines, "win": _amt(gamestate, win)})

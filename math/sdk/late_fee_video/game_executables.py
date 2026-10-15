@@ -12,6 +12,10 @@ from game_events import (
     rewind_event,
     second_take_event,
     rewind_mult_event,
+    late_fee_event,
+    late_fee_paid_event,
+    tracking_band_event,
+    band_win_event,
 )
 
 
@@ -75,12 +79,21 @@ class GameExecutables(GameCalculations):
         cond = self.get_current_distribution_conditions()
         self.rew_mult_index = cond.get("mult_start", 0)
         self.force_rew_every = cond.get("force_rew_every", 0)
+        self.late_fee = cond.get("late_fee", False)
+        self.late_days = 0
+        self.band = cond.get("band", False)
+        self.band_row = None
 
     def reveal_free_board(self):
         """Draw a free-spin board, forcing REW on the configured spins."""
         self.draw_board(emit_event=False)
         if self.force_rew_every and self.fs % self.force_rew_every == 0:
             self.place_rewind_symbol()
+        if self.band:
+            self.band_row = (self.fs - 1) % self.config.num_rows[0]
+            self.band_mult = self.config.band_mults[min((self.fs - 1) // self.config.num_rows[0], len(self.config.band_mults) - 1)]
+            placed = self.place_band()
+            tracking_band_event(self, self.band_row, self.band_mult, placed)
         reveal_event(self)
 
     def record_tape(self):
@@ -118,3 +131,53 @@ class GameExecutables(GameCalculations):
         if self.rew_mult_index < len(self.config.rewind_mults) - 1:
             self.rew_mult_index += 1
         rewind_mult_event(self, self.config.rewind_mults[self.rew_mult_index])
+
+    # --- buy-mode features -------------------------------------------------
+
+    def respin_reels(self, frozen):
+        super().respin_reels(frozen)
+        if self.band and self.band_row is not None:
+            self.place_band()
+
+    def run_late_fee(self):
+        """LATE FEE: an empty spin adds a day; a winning spin pays its line win x the fee multiplier."""
+        if not self.late_fee or self.wincap_triggered:
+            return
+        win = self.win_manager.spin_win
+        if win > 0:
+            mult = self.config.late_fee_mults[min(self.late_days, len(self.config.late_fee_mults) - 1)]
+            if mult > 1:
+                extra = round(win * (mult - 1), 4)
+                self.record({"kind": "latefee", "mult": mult, "gametype": self.gametype})
+                late_fee_paid_event(self, self.late_days, mult, extra)
+                self.win_manager.update_spinwin(extra)
+                self.evaluate_wincap()
+                set_win_event(self)
+                set_total_event(self)
+            self.late_days = 0
+        else:
+            self.late_days += 1
+        mult = self.config.late_fee_mults[min(self.late_days, len(self.config.late_fee_mults) - 1)]
+        late_fee_event(self, self.late_days, mult)
+
+    def run_band_win(self):
+        """TRACKING BAND: line wins that use a band wild pay x the band multiplier (extra paid on top)."""
+        if not self.band or self.band_row is None or self.wincap_triggered:
+            return
+        mult = self.band_mult
+        if mult > 1 and self.win_data.get("totalWin", 0) > 0:
+            band_cells = set(self.band_cells)
+            lines, base = [], 0.0
+            for w in self.win_data["wins"]:
+                if any((p["reel"], p["row"]) in band_cells for p in w["positions"]):
+                    lines.append(w["meta"]["lineIndex"])
+                    base += w["win"]
+            if base > 0:
+                extra = round(base * (mult - 1), 4)
+                self.record({"kind": "band", "mult": mult, "gametype": self.gametype})
+                band_win_event(self, mult, lines, extra)
+                self.win_manager.update_spinwin(extra)
+                self.evaluate_wincap()
+                set_win_event(self)
+                set_total_event(self)
+        self.band_row = None

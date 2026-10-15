@@ -98,7 +98,13 @@ button { font: inherit; color: inherit; }
 #side > div { position: absolute; z-index: 5; border: 14px solid transparent; border-image: url(../assets/ui/ui_side.webp) 80 fill stretch; padding: 0 6px; text-align: center; }
 #side .lbl, .field .lbl { display: block; font-size: 13px; color: var(--dim); letter-spacing: 2px; }
 #fsBox b, #multBox b { font-size: 34px; }
-#multBox.pulse { animation: pulse .5s; }
+#multBox.pulse, #feeBox.pulse { animation: pulse .5s; }
+#feeBox b { font-size: 30px; } #feeBox i { font-style: normal; font-size: 18px; color: var(--dim); }
+#feeBox.hot #feeVal { color: var(--rew); }
+#reels .band { position: absolute; z-index: 3; height: var(--cell); pointer-events: none; border-radius: 8px;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.10) 0 2px, transparent 2px 5px), linear-gradient(90deg, rgba(61,224,255,.18), rgba(216,74,158,.22), rgba(61,224,255,.18));
+  box-shadow: 0 0 0 2px rgba(61,224,255,.75), 0 0 18px 4px rgba(61,224,255,.35); animation: bandRoll 1.2s steps(6) infinite; }
+@keyframes bandRoll { 0% { background-position: 0 0, 0 0; } 100% { background-position: 0 30px, 0 0; } }
 @keyframes pulse { 50% { transform: scale(1.15); border-color: var(--rew); } }
 #tapeLog { overflow: hidden; font-size: 16px; text-align: left !important; }
 #tapeLog .rec { padding: 2px 4px; color: #bbb; }
@@ -173,6 +179,8 @@ button { font: inherit; color: inherit; }
 #stage.land #fsBox { left: calc(1070px + var(--e)); top: 120px; width: 190px; }
 #stage.land #multBox { left: calc(1070px + var(--e)); top: 220px; width: 190px; }
 #stage.land #tapeLog { left: calc(1070px + var(--e)); top: 320px; width: 190px; height: 180px; }
+#stage.land #feeBox { left: calc(1070px + var(--e)); top: 320px; width: 190px; }
+#stage.land #feeBox:not(.hide) ~ #tapeLog { top: 420px; height: 90px; }
 #stage.land #buyBtn { left: calc(1056px + var(--e)); top: 440px; width: 210px; font-size: 14px; }
 #stage.land #anteBtn { left: calc(1056px + var(--e)); top: 510px; width: 210px; height: 56px; font-size: 13px; }
 #stage.land #hud { left: calc(228px + var(--e) / 2); right: 22px; top: 572px; height: 140px; justify-content: space-between; }
@@ -186,6 +194,7 @@ button { font: inherit; color: inherit; }
 #stage.port #tape { left: 260px; top: calc(56px + var(--e) * .25); width: 430px; height: 70px; }
 #stage.port #fsBox { left: 260px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
 #stage.port #multBox { left: 485px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
+#stage.port #feeBox { left: 30px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
 #stage.port #tapeLog { left: 30px; top: calc(885px + var(--e) * .6); width: 660px; height: 52px; display: flex; gap: 12px; font-size: 14px; padding: 0 4px; }
 #stage.port #buyBtn { left: 30px; top: calc(885px + var(--e) * .6); width: 320px; height: 56px; }
 #stage.port #anteBtn { left: 370px; top: calc(885px + var(--e) * .6); width: 320px; height: 56px; }

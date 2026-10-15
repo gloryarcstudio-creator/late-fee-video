@@ -4,13 +4,19 @@
   const { P, RGS_MODE, M, api } = NET;
   const $ = id => document.getElementById(id);
   const MD = window.MATHDATA;
-  const BUY_MODES = ['bonus', 'double', 'director'];
-  const START_MULT = { base: 2, ante: 2, bonus: 2, double: 3, director: 5 };
+  const BUY_MODES = ['bonus', 'double', 'director', 'latefee', 'tracking'];
+  const ANTE_MODES = ['ante2', 'ante4'];
+  const START_MULT = { base: 2, ante2: 2, ante4: 2, bonus: 2, double: 3, director: 5, latefee: 2, tracking: 2 };
+  const BUY_COVER = { bonus: 'buy_night', double: 'buy_double', director: 'buy_director', latefee: 'buy_latefee', tracking: 'buy_tracking' };
+  // reel strip behind the spin blur: ante modes have their own base strips, Tracking Band its own free-spin strip
+  const BASE_STRIP = { ante2: 'ANTE2', ante4: 'ANTE4' };
+  const freeStrip = () => (S.mode === 'tracking' ? 'FRB' : 'FR0');
   const LINE_PAYS = { P: [50, 250, 1000], H1: [40, 150, 500], H2: [30, 120, 400], H3: [24, 100, 300], M1: [20, 60, 200], M2: [14, 50, 150], M3: [14, 40, 120], L1: [10, 24, 100], L2: [10, 24, 100], L3: [10, 20, 70], L4: [10, 20, 70] };
+  const FEATURE_TITLE = { latefee: 'mode_latefee', tracking: 'mode_tracking' };
   const TIERS = [[500, 'cultWin'], [100, 'epicWin'], [50, 'megaWin'], [20, 'bigWin']];
 
   const S = {
-    balance: 0, bets: [], betIdx: 0, ante: false, busy: false, turbo: false, muted: AUDIO.isMuted(),
+    balance: 0, bets: [], betIdx: 0, ante: 0, busy: false, turbo: false, muted: AUDIO.isMuted(),
     auto: 0, autoCfg: null, autoStart: 0, jur: {}, inBonus: false, fsTotal: 0, mult: 2, capped: false,
     bet: 0, mode: 'base', roundHadBonus: false, skip: false, ready: false, replay: P.replay, pendingRound: null,
   };
@@ -66,6 +72,10 @@
   // H.264 everywhere Stake runs; the VP9 copy covers builds without it (open-source Chromium)
   function vidSrc(base) { const v = document.createElement('video'); return base + (v.canPlayType('video/mp4; codecs="avc1.42E01E"') ? '.mp4' : '.webm'); }
   function playVideo(v) { try { v.muted = true; v.currentTime = 0; const r = v.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
+  function lateFeeBox(days, mult) {
+    $('feeVal').textContent = '×' + mult; $('feeDays').textContent = String(days).padStart(2, '0');
+    $('feeBox').classList.toggle('hot', mult > 1);
+  }
   function tapeCounter(amount100) {
     $('tapeVal').textContent = amount100 > 0 ? fmt(winMoney(amount100)) : '0000';
   }
@@ -114,12 +124,12 @@
 
   // ---------- UI state ----------
   const cost = mode => S.bet * MD[mode].cost;
-  function baseMode() { return S.ante ? 'ante' : 'base'; }
+  function baseMode() { return S.ante ? 'ante' + S.ante : 'base'; }
   function updateUI() {
     $('balVal').textContent = S.ready ? fmt(S.balance) : '—';
-    $('betVal').textContent = S.ready ? fmt(cost(baseMode())) + (S.ante ? ' (×3)' : '') : '—';
-    $('anteState').textContent = t(S.ante ? 'anteOn' : 'anteOff');
-    $('anteBtn').classList.toggle('on', S.ante); $('anteTag').classList.toggle('hide', !S.ante);
+    $('betVal').textContent = S.ready ? fmt(cost(baseMode())) + (S.ante ? ` (×${S.ante})` : '') : '—';
+    $('anteState').textContent = S.ante ? '×' + S.ante : t('anteOff');
+    $('anteBtn').classList.toggle('on', !!S.ante); $('anteTag').classList.toggle('hide', !S.ante);
     const lock = S.busy || S.auto > 0;
     ['betMinus', 'betPlus', 'buyBtn', 'anteBtn'].forEach(id => { $(id).disabled = lock || !S.ready; });
     $('betMinus').disabled ||= S.betIdx <= 0;
@@ -144,7 +154,7 @@
   const H = {
     async reveal(e) {
       Reels.clear(); Reels.unfreeze(); popup(''); osd('');
-      const strip = e.gameType === 'freegame' ? 'FR0' : (S.mode === 'ante' ? 'ANTE' : 'BR0');
+      const strip = e.gameType === 'freegame' ? freeStrip() : (BASE_STRIP[S.mode] || 'BR0');
       const antic = (e.anticipation || []).some(a => a > 0);
       del(antic ? 'lean' : 'spin');
       if (antic) $('tracking').classList.remove('hide');
@@ -153,6 +163,7 @@
       await Reels.spin(e.board, { anticipation: e.anticipation, turbo: S.turbo, fast: fast(), strip, onStop: r => { stopR(r); if (anticAt > 0 && r === anticAt - 1) { AUDIO.stop('reel_loop'); AUDIO.loop('antic_loop'); } } });
       AUDIO.stop('reel_loop'); AUDIO.stop('antic_loop', 0.3);
       $('tracking').classList.add('hide');
+      if (S.band && e.gameType === 'freegame') { Reels.band(S.band.positions); S.band = null; }
       updateUI(); del('idle');
     },
     async winInfo(e) { S.lastWins = e.wins; await showWins(e.wins); },
@@ -172,12 +183,13 @@
       await wait(700);
       S.inBonus = true; S.roundHadBonus = true; S.fsTotal = e.totalFs; S.mult = START_MULT[S.mode] || 2;
       $('multVal').textContent = '×' + S.mult; $('tapeLog').textContent = ''; $('fsVal').textContent = `1/${e.totalFs}`;
-      ['fsBox', 'multBox', 'tapeLog'].forEach(id => $(id).classList.remove('hide'));
+      if (S.mode === 'latefee') lateFeeBox(0, 1);
+      ['fsBox', 'multBox', 'tapeLog'].forEach(id => $(id).classList.remove('hide')); $('feeBox').classList.toggle('hide', S.mode !== 'latefee');
       tapeCounter(S.roundWin || 0);
       updateUI();
       if (S.auto && S.autoCfg && S.autoCfg.stopBonus) S.autoStopAfter = true;
       AUDIO.setMusic(null); AUDIO.stinger('stg_bonus_intro');
-      await banner(t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 3000, { video: vidSrc('assets/overlay/ov_bonus_intro') });
+      await banner(FEATURE_TITLE[S.mode] ? t(FEATURE_TITLE[S.mode]).toUpperCase() : t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 3000, { video: vidSrc('assets/overlay/ov_bonus_intro') });
       AUDIO.setMusic('mus_bonus'); DEL.event('bonus');
     },
     async updateFreeSpin(e) { S.fsTotal = e.total; $('fsVal').textContent = `${Math.min(e.amount + 1, e.total)}/${e.total}`; },
@@ -195,7 +207,7 @@
       Reels.clear(); Reels.freeze(e.frozenReels); osd(t('pause'));
       const spin = [0, 1, 2, 3, 4].filter(r => !e.frozenReels.includes(r));
       AUDIO.loop('reel_loop');
-      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: S.inBonus ? 'FR0' : 'BR0', onStop: stopReel(e.board) });
+      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: S.inBonus ? freeStrip() : (BASE_STRIP[S.mode] || 'BR0'), onStop: stopReel(e.board) });
       AUDIO.stop('reel_loop');
       if (e.wins && e.wins.length) await showWins(e.wins, true);
       if (e.win > 0) { popup('+' + fmt(winMoney(e.win))); sfx('win'); await wait(500); }
@@ -213,7 +225,7 @@
       osd(t('rew')); $('tracking').classList.remove('hide'); sfx('rew'); del('rewind');
       document.querySelectorAll('#tapeLog .rec').forEach(x => x.classList.toggle('sel', +x.dataset.i === e.recordIndex));
       await wait(400);
-      await Reels.spin(e.board, { reverse: true, turbo: S.turbo, fast: fast(), strip: 'FR0' });
+      await Reels.spin(e.board, { reverse: true, turbo: S.turbo, fast: fast(), strip: freeStrip() });
       $('tracking').classList.add('hide');
       await showWins(e.wins, true);
       popup(`${fmt(winMoney(e.win / e.mult))} ×${e.mult} = ${fmt(winMoney(e.win))}`); sfx('win_m');
@@ -224,7 +236,7 @@
       await wait(500);
       const spin = [0, 1, 2, 3, 4].filter(r => !e.frozenReels.includes(r));
       AUDIO.loop('reel_loop');
-      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: 'FR0', onStop: stopReel(e.board) });
+      await Reels.spin(e.board, { spin, turbo: S.turbo, fast: fast(), strip: freeStrip(), onStop: stopReel(e.board) });
       AUDIO.stop('reel_loop');
       if (e.wins && e.wins.length) await showWins(e.wins, true);
       popup(e.win > 0 ? `+${fmt(winMoney(e.win))} (×${e.mult})` : '');
@@ -238,6 +250,30 @@
       const b = $('multBox'); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse');
       await wait(500);
     },
+    // Late Fee buy: empty spins add days and raise the multiplier; the next line win pays the extra (line win × (mult − 1))
+    async lateFee(e) {
+      const up = e.days > 0;
+      lateFeeBox(e.days, e.mult);
+      if (up) { osd(t('feeDays', { n: e.days }), 900); sfx('rew_mult'); await wait(450); }
+    },
+    async lateFeePaid(e) {
+      osd(t('feePaid', { n: e.mult })); sfx('win_m');
+      const b = $('feeBox'); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse');
+      popup(`+${fmt(winMoney(e.win))} (×${e.mult})`);
+      await wait(1100); osd('');
+    },
+    // Tracking Band buy: the band row (book coordinates) is already wild on the revealed board; it is drawn over the reels
+    async trackingBand(e) {
+      S.band = e; Reels.band(null);
+      osd(t('band', { n: e.mult }), 900); sfx('pause');
+      await wait(300);
+    },
+    async bandWin(e) {
+      osd(t('band', { n: e.mult })); sfx('win_m');
+      if (S.lastWins) { const ws = S.lastWins.filter(w => e.lineIndexes.includes(w.meta && w.meta.lineIndex)); Reels.clear(); Reels.dim(true); ws.forEach(w => Reels.highlight(w.positions)); Reels.lines(ws); }
+      popup(`+${fmt(winMoney(e.win))} (×${e.mult})`);
+      await wait(1100); osd('');
+    },
     async freeSpinEnd(e) {
       Reels.unfreeze(); osd('');
       const total = S.roundWin || e.amount;
@@ -245,7 +281,7 @@
       AUDIO.setMusic(null); AUDIO.stinger('stg_shift_over');
       await banner(tier ? t(tier) : t('shiftOver'), fmt(winMoney(total)), 3500);
       S.inBonus = false; AUDIO.setMusic('mus_base'); DEL.event('base');
-      ['fsBox', 'multBox', 'tapeLog'].forEach(id => $(id).classList.add('hide'));
+      ['fsBox', 'multBox', 'tapeLog', 'feeBox'].forEach(id => $(id).classList.add('hide')); Reels.band(null);
       tapeCounter(0); updateUI();
     },
     async wincap(e) {
@@ -326,7 +362,7 @@
 
   async function playRound(round) {
     S.bet = round.amount / M; S.mode = round.mode || 'base';
-    S.roundWin = 0; S.capped = false; S.roundHadBonus = false; S.lastWins = null;
+    S.roundWin = 0; S.capped = false; S.roundHadBonus = false; S.lastWins = null; S.band = null; Reels.band(null);
     $('winVal').textContent = '—';
     for (const e of round.state || []) {
       const h = H[e.type];
@@ -402,7 +438,7 @@
     const list = $('buyList'); list.textContent = '';
     BUY_MODES.forEach(m => {
       const b = document.createElement('button'); b.className = 'btn buy-item'; b.dataset.mode = m;
-      const cover = { bonus: 'buy_night', double: 'buy_double', director: 'buy_director' }[m];
+      const cover = BUY_COVER[m];
       b.innerHTML = `<img src="assets/ui/${cover}.webp" alt=""><div><b>${t('mode_' + m)}</b><span>${I18N.socialize(t('desc_' + m))}</span><em>${t('price')}: ${fmt(cost(m))} (${MD[m].cost}×)</em></div>`;
       b.addEventListener('click', () => {
         if (S.balance + 1e-9 < cost(m)) { toast(t('noFunds')); sfx('nofunds'); return; }
@@ -424,13 +460,13 @@
 
   function buildRules() {
     const T = k => I18N.socialize(t(k)), J = S.jur || {}, x = v => v.toLocaleString(I18N.lang() === 'ar' ? 'ar-u-nu-latn' : I18N.lang()) + '×';
-    const modes = ['base', 'ante', ...(J.disabledBuyFeature ? [] : BUY_MODES)];
+    const modes = ['base', ...ANTE_MODES, ...(J.disabledBuyFeature ? [] : BUY_MODES)];
     const rows = modes.map(m => `<tr><td>${t('mode_' + m)}</td><td>${x(MD[m].cost)}</td><td>${MD[m].rtp.toFixed(2)}%</td><td>${x(MD[m].maxWin)}</td></tr>`).join('');
     const pays = Object.entries(LINE_PAYS).map(([s, p]) => `<tr><td><span class="mini s-${s}">${Reels.LABEL[s]}</span></td>${p.map(v => `<td>${+(v / 20).toFixed(2)}×</td>`).join('')}</tr>`).join('');
     const lines = Reels.PAYLINES.slice(1).map((pl, i) => `<div class="pl-mini"><b>${i + 1}</b>${[0, 1, 2].map(row => `<div>${pl.map(r => `<i class="${r === row ? 'on' : ''}"></i>`).join('')}</div>`).join('')}</div>`).join('');
     const btn = [['▶', 'b_spin'], ['−&nbsp;/&nbsp;+', 'b_bet'], [t('ante'), 'b_ante'], J.disabledBuyFeature ? null : [t('catalog'), 'b_catalog'],
       J.disabledAutoplay ? null : ['⟳', 'b_auto'], J.disabledTurbo ? null : ['»', 'b_turbo'], ['♪', 'b_sound'], ['☰', 'b_menu'], ['✕', 'b_close']]
-      .filter(Boolean).map(([k, v]) => `<li><b>${k}</b> ${T(v).replace('{n}', MD.ante.cost)}</li>`).join('');
+      .filter(Boolean).map(([k, v]) => `<li><b>${k}</b> ${T(v)}</li>`).join('');
     const disc = I18N.lang() !== 'en' && t('r_disc') !== 'r_disc' ? `<p>${t('r_disc')}</p>` : '';
     const html = `
       <h2>${t('rules')}</h2>
@@ -440,7 +476,7 @@
       <p>${T('r_rtpNote')} ${T('r_maxNote').replace('{max}', MD.base.maxWin.toLocaleString('en'))}</p>
       <h3>${t('r_modesH')}</h3>
       <table class="t"><tr><th>${t('th_mode')}</th><th>${T('th_cost')}</th><th>${t('th_what')}</th></tr>
-        <tr><td>${t('mode_ante')}</td><td>${x(MD.ante.cost)}</td><td>${T('desc_ante')}</td></tr>
+        ${ANTE_MODES.map(m => `<tr><td>${t('mode_' + m)}</td><td>${x(MD[m].cost)}</td><td>${T('desc_' + m)}</td></tr>`).join('')}
         ${(J.disabledBuyFeature ? [] : BUY_MODES).map(m => `<tr><td>${t('mode_' + m)}</td><td>${x(MD[m].cost)}</td><td>${T('r_buyPrefix')} ${T('desc_' + m)}</td></tr>`).join('')}
       </table>
       <h3>${T('r_payH')}</h3>
@@ -454,6 +490,7 @@
       <p><b>PAUSE.</b> ${T('r_pause')}</p>
       <p><b>TAPE.</b> ${T('r_tape')}</p>
       <p><b>REWIND / SECOND TAKE.</b> ${T('r_rewind')}</p>
+      ${J.disabledBuyFeature ? '' : `<p><b>LATE FEE.</b> ${T('desc_latefee')}</p><p><b>TRACKING BAND.</b> ${T('desc_tracking')}</p>`}
       <h3>${t('r_btnH')}</h3>
       <ul>${btn}</ul>
       <p>${J.disabledSpacebar ? '' : T('b_space') + ' '}${T('b_skip')}</p>
@@ -611,7 +648,7 @@
       const amt = auth.round.amount / M;
       if (!S.bets.includes(amt)) { S.bets.push(amt); S.bets.sort((a, b) => a - b); }
       S.betIdx = S.bets.indexOf(amt);
-      if (auth.round.mode === 'ante') S.ante = true;
+      if (ANTE_MODES.includes(auth.round.mode)) S.ante = +auth.round.mode.slice(4);
       S.pendingRound = auth.round;
     }
     S.bet = S.bets[S.betIdx];
@@ -640,7 +677,7 @@
   click('spinBtn', () => { if (S.auto > 0 && !S.busy) return stopAuto(); spin(); });
   click('betMinus', () => { if (S.betIdx > 0) { S.betIdx--; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
   click('betPlus', () => { if (S.betIdx < S.bets.length - 1) { S.betIdx++; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
-  click('anteBtn', () => { S.ante = !S.ante; sfx('ui_toggle'); updateUI(); });
+  click('anteBtn', () => { S.ante = S.ante === 0 ? 2 : S.ante === 2 ? 4 : 0; sfx('ui_toggle'); updateUI(); });
   click('turboBtn', () => { S.turbo = !S.turbo; sfx('ui_toggle'); updateUI(); });
   click('soundBtn', () => { S.muted = !S.muted; AUDIO.setMuted(S.muted); sfx('ui_toggle'); updateUI(); });
   click('menuBtn', () => { buildRules(); dlg('rulesDlg', true); sfx('ui_open'); });

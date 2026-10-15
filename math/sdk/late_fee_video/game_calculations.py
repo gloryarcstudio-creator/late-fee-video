@@ -59,3 +59,15 @@ class GameCalculations(Executables):
         row = random.randrange(0, self.config.num_rows[reel])
         self.board[reel][row] = self.create_symbol("R")
         self.get_special_symbols_on_board()
+
+    def place_band(self):
+        """Tracking band: the band row turns wild on every reel, except scatter and REW cells."""
+        self.band_cells = []
+        row = self.band_row
+        for reel in self.config.band_reels:
+            if self.board[reel][row].name in ("S", "R"):
+                continue
+            self.board[reel][row] = self.create_symbol("W")
+            self.band_cells.append((reel, row))
+        self.get_special_symbols_on_board()
+        return self.band_cells

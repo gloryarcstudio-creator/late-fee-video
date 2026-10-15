@@ -33,7 +33,7 @@ async function logic(browser) {
   await page.evaluate(() => { window.__fast = true; });
   await start(page);
   let n = 0;
-  for (const [mode, tags] of [['base', ['zero', 'win', 'pause', 'anticipation', 'bonus', 'rewind', 'big', 'epic', 'cap']], ['ante', ['bonus', 'win', 'cap']], ['bonus', ['bonus', 'rewind', 'cap']], ['double', ['rewind', 'cap']], ['director', ['rewind', 'cap', 'epic']]]) {
+  for (const [mode, tags] of [['base', ['zero', 'win', 'pause', 'anticipation', 'bonus', 'rewind', 'big', 'epic', 'cap']], ['ante2', ['bonus', 'win', 'cap']], ['ante4', ['bonus', 'win', 'cap']], ['latefee', ['latefee', 'rewind', 'cap']], ['tracking', ['band', 'rewind', 'cap']], ['bonus', ['bonus', 'rewind', 'cap']], ['double', ['rewind', 'cap']], ['director', ['rewind', 'cap', 'epic']]]) {
     for (const tg of tags.concat(Array(6).fill(''))) {
       await ctl('force=' + (tg || 'none'));
       await page.evaluate(m => window.__game.spin(m), mode);

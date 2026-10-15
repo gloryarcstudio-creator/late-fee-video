@@ -25,10 +25,13 @@ if __name__ == "__main__":
 
     num_sim_args = {
         "base": int(3e5 * scale),
-        "ante": int(1.5e5 * scale),
+        "ante2": int(1.5e5 * scale),
+        "ante4": int(1.5e5 * scale),
         "bonus": int(6e4 * scale),
         "double": int(6e4 * scale),
         "director": int(6e4 * scale),
+        "latefee": int(6e4 * scale),
+        "tracking": int(6e4 * scale),
     }
     for k, v in num_sim_args.items():
         # mode-sims must divide by threads * batch

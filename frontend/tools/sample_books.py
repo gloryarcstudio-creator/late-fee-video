@@ -9,7 +9,7 @@ import io, json, os, random, sys, csv
 import zstandard
 
 PUB, OUT = sys.argv[1], sys.argv[2]
-N = {"base": 600, "ante": 400, "bonus": 40, "double": 30, "director": 25}
+N = {"base": 600, "ante2": 300, "ante4": 300, "bonus": 40, "double": 30, "director": 25, "latefee": 30, "tracking": 25}
 random.seed(1989)
 index = json.load(open(os.path.join(PUB, "index.json")))
 mathdata = {}
@@ -19,6 +19,8 @@ def tags_of(b):
     if "freeSpinTrigger" in types: t.add("bonus")
     if any(e["type"] == "pauseRespin" and e["win"] > 0 for e in ev): t.add("pause")
     if "rewind" in types: t.add("rewind")
+    if "lateFeePaid" in types: t.add("latefee")
+    if "bandWin" in types: t.add("band")
     pm = b["payoutMultiplier"] / 100
     if pm >= 20: t.add("big")
     if pm >= 100: t.add("epic")

@@ -9,7 +9,7 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 ROOT, BOOKS, PORT = sys.argv[1], sys.argv[2], int(sys.argv[3])
-COST = {"base": 1, "ante": 3, "bonus": 100, "double": 300, "director": 600}
+COST = {"base": 1, "ante2": 2, "ante4": 4, "bonus": 100, "double": 300, "director": 600, "latefee": 200, "tracking": 400}
 B = {m: json.load(open(f"{BOOKS}/books_{m}.json")) for m in COST}
 S = {"balance": 10**9, "currency": "USD", "levels": [100000, 200000, 400000, 1000000, 2000000, 5000000, 10000000],
      "def": 1000000, "social": False, "round": None, "force": None, "log": [], "bodies": [], "jur": []}

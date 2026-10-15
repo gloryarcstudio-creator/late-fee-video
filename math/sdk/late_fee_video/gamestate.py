@@ -33,6 +33,8 @@ class GameState(GameStateOverride):
             self.reveal_free_board()
             self.evaluate_lines_board()
             self.run_pause_chain()
+            self.run_band_win()
+            self.run_late_fee()
             self.record_tape()
             if self.check_fs_condition():
                 self.update_fs_retrigger_amt()
