@@ -225,9 +225,10 @@
       if (S.auto && S.autoCfg && S.autoCfg.stopBonus) S.autoStopAfter = true;
       AUDIO.setMusic(null); AUDIO.stinger('stg_bonus_intro');
       await banner(FEATURE_TITLE[S.mode] ? t(FEATURE_TITLE[S.mode]).toUpperCase() : t('nightShift'), t('spinsAwarded', { n: e.totalFs }), 3000, { video: vidSrc('assets/overlay/ov_bonus_intro') });
-      AUDIO.setMusic('mus_bonus'); DEL.event('bonus');
+      AUDIO.setMusic('mus_bonus'); DEL.event('bonus'); S.fsMark = S.roundWin || 0;
     },
-    async updateFreeSpin(e) { S.fsTotal = e.total; $('fsVal').textContent = `${Math.min(e.amount + 1, e.total)}/${e.total}`; },
+    // updateFreeSpin with amount ≥ 1 closes the spin before it (the last spin is closed by freeSpinEnd): its big win shows there
+    async updateFreeSpin(e) { if (e.amount > 0) await spinBigWin(); S.fsTotal = e.total; $('fsVal').textContent = `${Math.min(e.amount + 1, e.total)}/${e.total}`; },
     async freeSpinRetrigger(e) {
       const n = e.totalFs - S.fsTotal; S.fsTotal = e.totalFs;
       Reels.highlight(e.positions, 'hit-s'); sfx('retrigger');
@@ -310,6 +311,7 @@
       await wait(1100); osd('');
     },
     async freeSpinEnd(e) {
+      await spinBigWin();
       Reels.unfreeze(); osd('');
       const total = S.roundWin || e.amount;
       const tier = tierOf(winMoney(total) / tierBase());
@@ -336,6 +338,13 @@
   };
   // Big-win tiers are measured against what the player paid: base bet in base/ante, the buy price in buy modes.
   const tierBase = () => BUY_MODES.includes(S.mode) ? cost(S.mode) : S.bet;
+  // Each free spin gets its own big win when that spin (its setTotalWin growth, respins and rewinds included) pays 20×+ the bet,
+  // in every mode; the SHIFT OVER total at the end keeps the tier against the price above. Not after a max-win cap.
+  async function spinBigWin() {
+    if (!S.inBonus) return;
+    const d = (S.roundWin || 0) - (S.fsMark || 0); S.fsMark = S.roundWin || 0;
+    if (d > 0 && !S.capped && tierOf(winMoney(d) / S.bet)) await bigWin(winMoney(d), S.bet);
+  }
   function tierOf(x) { for (const [th, k] of TIERS) if (x >= th) return k; return null; }
 
   async function showWins(wins, quick) {
@@ -372,8 +381,8 @@
   // Count-up paced by tier: each tier the win reaches gets its own stretch of the count (and its scene), so a CULT win shows
   // BIG, MEGA and EPIC for a beat each instead of flashing past them; the last stretch eases out. First tap jumps to the total.
   const BW_SEG = { bigWin: 1600, megaWin: 1200, epicWin: 1200, cultWin: 1400 };
-  function bigWin(amount) {
-    const el = $('bigWin'), base = tierBase(), x = amount / base;
+  function bigWin(amount, base = tierBase()) {
+    const el = $('bigWin'), x = amount / base;
     const dec = I18N.decimalsFor(amount, I18N.currency());
     if (fast()) { del('wow'); $('bigTitle').textContent = t(tierOf(x)); $('bigAmt').textContent = money(amount, dec); return Promise.resolve(); }
     bwScenes();

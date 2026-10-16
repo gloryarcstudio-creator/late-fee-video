@@ -1,6 +1,6 @@
 // Big win scenes (batch 08): node tools/qa_bigwin.js BASE_URL OUT_DIR
 // per viewport: a CULT-sized win walks BIG → MEGA → EPIC → CULT, each tier on its own loop (playing, matching the title) for a beat;
-// shots of every tier, the max-win and bonus-total banners; text must sit above the scene object
+// shots of every tier, the max-win and bonus-total banners; then a bought bonus shows a big win after every 20×+ free spin
 const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
 const fs = require('fs');
 const [BASE, OUT] = process.argv.slice(2);
@@ -58,6 +58,32 @@ const results = []; const ok = (name, pass, info = '') => { results.push({ name,
     ok(`${tag} bonus intro banner back to full-bleed`, !intro.scene && !intro.loop && !intro.poster, JSON.stringify(intro));
     await page.waitForTimeout(800);
     ok(`${tag} no errors`, !errors.length, errors.slice(0, 3).join(' | '));
+    await ctx.close();
+  }
+  // per free spin: a bought bonus shows a big win right after each spin paying 20×+ the bet (not only the SHIFT OVER total)
+  {
+    const books = JSON.parse(fs.readFileSync(__dirname + '/../src/demo/books_bonus.json'));
+    const want = bk => { let tot = 0, mark = 0, inb = false, k = 0; const out = [];
+      for (const e of bk.events) {
+        if (e.type === 'setTotalWin') tot = e.amount;
+        if (e.type === 'freeSpinTrigger') { inb = true; mark = tot; }
+        if (e.type === 'wincap') break;
+        if (inb && ((e.type === 'updateFreeSpin' && e.amount > 0) || e.type === 'freeSpinEnd')) { k++; if (tot - mark >= 2000) out.push(k); mark = tot; }
+      } return out; };
+    const bk = books.map(b => ({ b, w: want(b) })).filter(x => x.w.length >= 2 && !x.b.events.some(e => e.type === 'wincap')).sort((a, b) => a.b.events.length - b.b.events.length)[0];
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } }); const page = await ctx.newPage(); const errors = [];
+    page.on('pageerror', e => errors.push(String(e)));
+    await page.goto(BASE + '/index.html' + RGS); await page.waitForSelector('#splashBtn:not([disabled])', { timeout: 15000 });
+    await page.click('#splashBtn'); await page.waitForTimeout(800);
+    await page.evaluate(() => { window.__open = []; const el = document.getElementById('bigWin');
+      new MutationObserver(() => { if (!el.classList.contains('hide')) window.__open.push(document.getElementById('fsVal').textContent.split('/')[0]); }).observe(el, { attributes: true, attributeFilter: ['class'] });
+      window.__game.S.turbo = true; });
+    await ctl('force=' + bk.b.id); page.evaluate(() => window.__game.spin('bonus'));
+    await page.waitForFunction(() => window.__game.S.inBonus, null, { timeout: 60000 });
+    await page.waitForFunction(() => !window.__game.S.busy, null, { timeout: 400000 });
+    const got = [...new Set(await page.evaluate(() => window.__open))].map(Number);
+    ok(`bonus book ${bk.b.id}: big win after free spins ${bk.w.join(',')}`, got.join(',') === bk.w.join(','), 'shown after ' + got.join(','));
+    ok('bonus run: no errors', !errors.length, errors.slice(0, 2).join(' | '));
     await ctx.close();
   }
   await browser.close();
