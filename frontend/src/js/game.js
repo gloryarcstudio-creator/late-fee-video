@@ -143,11 +143,11 @@
     const bl = Math.ceil(ox / sc) + 1 + (st.classList.contains('live') ? 10 : 0), bt = Math.ceil(oy / sc) + 1 + (st.classList.contains('live') ? 10 : 0);
     const BW = W + 2 * bl, BH = H + 2 * bt, bs = Math.max(BW / 2560, BH / 1440), ix = -bl + (BW - 2560 * bs) / 2, iy = -bt + (BH - 1440 * bs) / 2;
     const co = $('counter').style; co.left = ix + 'px'; co.top = (iy + 1122 * bs) + 'px'; co.width = Math.min(800 * bs, tvLeft - 2 - ix) + 'px'; co.height = (318 * bs) + 'px';
-    // landscape: Del and his stand rest on that counter line at every aspect — his feet (98.8 % of the 520 px block) sit 48 px
-    // below its top edge, so his legs show down to the shoes and the stand shows its desk front
+    // landscape: Del and his stand rest on that counter line at every aspect — his feet (98.8 % of the 520 px block) sit 72 px
+    // below its top edge: the counter cuts him at the jeans hem (at 48 px the shoes showed as slivers on the edge), the stand shows its desk top
     // the tape counter sits on the same counter line (4:3 screens put the line lower than 16:9, the counter used to float on his legs)
     const line = iy + 1122 * bs;
-    $('del').style.top = port ? '' : (line + 48 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line + 7, 650) + 'px';
+    $('del').style.top = port ? '' : (line + 72 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line + 7, 650) + 'px';
     if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); }
   }
 
