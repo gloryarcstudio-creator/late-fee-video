@@ -138,16 +138,22 @@
     const v = { '--cell': cell + 'px', '--gap': gap + 'px', '--pad': pad + 'px', '--holeTop': holeTop + 'px', '--tvw': tvW + 'px', '--tvh': tvH + 'px',
       '--fx': -(pad + HX0 * tvW) + 'px', '--fy': -(holeTop + HY0 * tvH) + 'px' };
     for (const k in v) st.style.setProperty(k, v[k]);
-    // counter slice in front of Del: the background is center/cover on #bg (stage + letterbox bleed, +10px when the live scene is on);
-    // the slice is the picture's rows 1122..1440 of 2560×1440, left 800 px, capped before the TV
-    const bl = Math.ceil(ox / sc) + 1 + (st.classList.contains('live') ? 10 : 0), bt = Math.ceil(oy / sc) + 1 + (st.classList.contains('live') ? 10 : 0);
-    const BW = W + 2 * bl, BH = H + 2 * bt, bs = Math.max(BW / 2560, BH / 1440), ix = -bl + (BW - 2560 * bs) / 2, iy = -bt + (BH - 1440 * bs) / 2;
+    // counter slice in front of Del: the background is cover on #bg (stage + letterbox bleed, +10px left/right when the live scene
+    // is on, for the parallax); the slice is the picture's rows 1122..1440 of 2560×1440, left 800 px, capped before the TV.
+    // Vertically the picture is top-aligned, so the ceiling lamp in its top rows stays in view, unless that would push the counter
+    // line below 630 px (screens wider than ~2:1): then just enough of the top is cropped (centred at most).
+    const bl = Math.ceil(ox / sc) + 1 + (st.classList.contains('live') ? 10 : 0), bt = Math.ceil(oy / sc) + 1;
+    const BW = W + 2 * bl, BH = H + 2 * bt, bs = Math.max(BW / 2560, BH / 1440), D = BH - 1440 * bs;
+    const fy = D < -0.5 ? Math.min(0.5, Math.max(0, (1122 * bs - bt - 630) / -D)) : 0.5;
+    const ix = -bl + (BW - 2560 * bs) / 2, iy = -bt + D * fy;
+    st.style.setProperty('--bgy', (fy * 100).toFixed(2) + '%');
     const co = $('counter').style; co.left = ix + 'px'; co.top = (iy + 1122 * bs) + 'px'; co.width = Math.min(800 * bs, tvLeft - 2 - ix) + 'px'; co.height = (318 * bs) + 'px';
     // landscape: Del and his stand rest on that counter line at every aspect — his feet (98.8 % of the 520 px block) sit 72 px
     // below its top edge: the counter cuts him at the jeans hem (at 48 px the shoes showed as slivers on the edge), the stand shows its desk top
-    // the tape counter sits on the same counter line (4:3 screens put the line lower than 16:9, the counter used to float on his legs)
+    // the tape counter sits on the same counter line, over the counter's lit top edge, so no strip shows between his jeans and the plate
+    // (4:3 screens put the line lower than 16:9, the counter used to float on his legs)
     const line = iy + 1122 * bs;
-    $('del').style.top = port ? '' : (line + 72 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line + 7, 650) + 'px';
+    $('del').style.top = port ? '' : (line + 72 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line - 3, 650) + 'px';
     if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); }
   }
 
@@ -629,8 +635,9 @@
       }
     };
     function parallax(e) {
-      const x = (e.clientX / innerWidth - .5) * -8, y = (e.clientY / innerHeight - .5) * -6;
-      $('bg').style.transform = $('counter').style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      // horizontal only: the picture is top-aligned (ceiling lamp), a vertical shift would crop the lamp or open a gap above it
+      const x = (e.clientX / innerWidth - .5) * -8;
+      $('bg').style.transform = $('counter').style.transform = `translate(${x.toFixed(1)}px,0)`;
     }
     return {
       start() {
