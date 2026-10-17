@@ -2,23 +2,23 @@
 // Every clip starts and ends on an anchor pose, so clips chain on frame boundaries with no cut:
 //   hold states  idle ⇄ lean / pause / bored   via  <state>_in  →  <state>_loop  →  <state>_out
 //   one-shots    cheer / wow / rew             from idle back to idle (wow interrupts anything with a crossfade)
-// Frames: assets/del/f/<clip>_<i>.webp (384×754, 12 fps; tools/art/split_del_frames.py from art/del_strips/), assets/del/m/f/
-// 288×566 for phones.
-// They are drawn on one canvas from requestAnimationFrame: the next frame fades in over the current one ('lighter' sum with
-// weights 1−f and f, so the 12 fps clips move continuously and the figure never dims; big jumps fade late, see BW), clips run
-// at SPEED of their authored speed, and the frames of the pose transitions carry a stabilising shift (OFF, tools/art/del_offsets.py) so the feet stay put
+// Frames: assets/del/f/<clip>_<i>.webp (384×754, 24 fps: the 12 fps clips from tools/art/split_del_frames.py plus an optical-flow
+// in-between for every pair, tools/art/del_inbetween.py), assets/del/m/f/ 288×566 for phones.
+// They are drawn on one canvas from requestAnimationFrame with hard frame steps: no cross-dissolve between frames (a dissolve of
+// two poses left both half transparent, and Del showed the shelves through him on big moves). Clips run at SPEED of their authored speed, and the frames of the pose transitions carry a stabilising shift (OFF, tools/art/del_offsets.py) so the feet stay put
 // instead of drifting and jumping sideways. A canvas never draws a loaded image as blank (whole strips as CSS backgrounds fell
 // out of the browser's decoded-image budget and Del vanished for whole passes); a clip starts only once its frames have arrived.
 window.DEL = (function () {
   // name: [frames, seconds, loop, startPose, endPose]
+  // (frame counts of the 12 fps sources; the 24 fps sets hold 2n − 1 frames, see N below)
   const CLIPS = {
     idle: [48, 4, 1, 'idle', 'idle'], cheer_t: [30, 2.5, 0, 'idle', 'idle'], wow_t: [36, 3, 0, 'idle', 'idle'], rew_t: [30, 2.5, 0, 'idle', 'idle'],
     lean_in: [12, 1, 0, 'idle', 'lean'], lean_loop: [24, 2, 1, 'lean', 'lean'], lean_out: [12, 1, 0, 'lean', 'idle'],
     pause_in: [12, 1, 0, 'idle', 'pause'], pause_loop: [24, 2, 1, 'pause', 'pause'], pause_out: [12, 1, 0, 'pause', 'idle'],
     bored_in: [18, 1.5, 0, 'idle', 'bored'], bored_loop: [36, 3, 1, 'bored', 'bored'], bored_out: [12, 1, 0, 'bored', 'idle'],
   };
+  for (const k in CLIPS) CLIPS[k][0] = 2 * CLIPS[k][0] - 1;
   // OFF: per-frame shift [dx list, dy list] in 384×754 frame px (one value = every frame); idle and the one-shots stay unshifted.
-  // BW: share of each frame step the fade to the next frame may use (digit/9; missing = whole step): big pose jumps fade late.
   const OFF = {
     lean_loop: ['9.3', '1'],
     lean_in: ['0,-0.1,3.1,7.3,14.2,20.1,11.7,10.3,10.3,10.7,9.6,9.3', '0,0,1,4,4,4,2,2,2,2,1,1'],
@@ -30,28 +30,18 @@ window.DEL = (function () {
     bored_in: ['0,-0.2,0.5,12.7,15.3,14.9,14.2,22.8,22,23.5,19.6,12.2,11.5,11.6,11.6,11.7,12.2,11.7', '0,0,1,4,6,6,6,6,6,5,5,2,1,1,1,1,0.4,1'],
     bored_out: ['11.7,12.2,11.8,11.8,11.9,11.9,2.9,4,0.9,-0.1,-0.1,0', '1,1,1,1,1,1,1,1,1,0,0,0'],
   };
-  const BW = {
-    lean_in: '96232268999',
-    lean_out: '99925259999',
-    pause_in: '94223287999',
-    pause_out: '99942324289',
-    bored_in: '99376436232889999',
-    bored_out: '99862623989',
-    cheer_t: '99999999985459899747889999999',
-    wow_t: '99999986535747794775326778989999999',
-    rew_t: '99999788999999999999978899999',
-  };
   const HOLD = { idle: 1, lean: 1, pause: 1, bored: 1 }, SHOT = { cheer: 1, wow: 1, rew: 1 };
   const ALIAS = { spin: 'idle', rewind: 'rew' };
-  const SPEED = 0.8, XF = 250, PAD = 32;      // speed factor, crossfade ms, canvas side margin (frame px) for the shifts
+  const SPEED = 0.8, XF = 160, PAD = 32;      // speed factor, interrupt blend ms, canvas side margin (frame px) for the shifts
   const STILL = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const off = {}; for (const k in OFF) off[k] = OFF[k].map(v => v.split(',').map(Number));
+  // per-frame shifts are given for the 12 fps frames; the in-betweens take the mean of their neighbours
+  const off = {}; for (const k in OFF) off[k] = OFF[k].map(v => v.split(',').map(Number)).map(a => a.length < 2 ? a : a.flatMap((x, i) => i + 1 < a.length ? [x, (x + a[i + 1]) / 2] : [x]));
   let root, cv, g, dir = 'assets/del/f/', FW = 384, FH = 754, S = 1;
   let hold = 'idle';        // the pose Del is in (or heading to) between clips
   let want = 'idle';        // the hold state the game asked for
   let shot = null;          // one pending one-shot
   let cur = null, old = null, xfAt = 0;   // clip on screen { name, t0, pass }, the one it crossfades from, crossfade start
-  const frames = {}, got = {}, loaded = {};
+  const frames = {}, got = {}, loaded = {}, settled = {};
   const step = name => CLIPS[name][1] / SPEED / (CLIPS[name][0] - 1) * 1000;   // ms per frame
   const span = name => (CLIPS[name][0] - 1) * step(name);                        // ms per pass
 
@@ -59,10 +49,16 @@ window.DEL = (function () {
     if (frames[name]) return;
     const n = CLIPS[name][0]; got[name] = 0;
     frames[name] = Array.from({ length: n }, (_, i) => {
-      const im = new Image(); im.onload = () => { if (++got[name] === n) loaded[name] = true; }; im.src = `${dir}${name}_${i}.webp`; return im;
+      const im = new Image(); im.onload = () => { settled[name] = (settled[name] || 0) + 1; if (++got[name] === n) loaded[name] = true; }; im.onerror = () => { settled[name] = (settled[name] || 0) + 1; }; im.src = `${dir}${name}_${i}.webp`; return im;
     });
   }
-  function preloadAll() { Object.keys(CLIPS).forEach(load); }
+  // 24 fps sets are ~600 frames: fetch the clips in the order the game first needs them (anticipation, wins, features, bored)
+  const ORDER = ['lean_in', 'lean_loop', 'lean_out', 'cheer_t', 'wow_t', 'pause_in', 'pause_loop', 'pause_out', 'rew_t', 'bored_in', 'bored_loop', 'bored_out'];
+  // one clip at a time, so the frames never queue ahead of the rest of the deferred art (bonus background, idle loops)
+  function preloadAll() {
+    const q = ORDER.concat(Object.keys(CLIPS)).filter((k, i, a) => a.indexOf(k) === i);
+    (function next() { const k = q.shift(); if (!k) return; load(k); const w = setInterval(() => { if ((settled[k] || 0) >= CLIPS[k][0]) { clearInterval(w); next(); } }, 50); })();
+  }
 
   // ---------- drawing ----------
   function frame(name, i, w) {
@@ -78,18 +74,19 @@ window.DEL = (function () {
     return loop ? p % (n - 1) : Math.min(p, n - 1);
   }
   function draw(s, now, w) {
-    const n = CLIPS[s.name][0], p = at(s, now), i = Math.floor(p), bw = BW[s.name], d = bw ? +bw[i] / 9 || 1 : 1;
-    const f = Math.max(0, (p - i - (1 - d)) / d);
-    frame(s.name, i, w * (1 - f)); if (i + 1 < n) frame(s.name, i + 1, w * f);
+    const n = CLIPS[s.name][0], i = Math.min(n - 1, Math.round(at(s, now)));
+    frame(s.name, i, w);
     const ahead = frames[s.name][Math.min(i + 2, n - 1)];   // decode the next frame off the draw path
     if (ahead.decode && !ahead._dec && ahead.naturalWidth) { ahead._dec = 1; ahead.decode().catch(() => {}); }
   }
 
   // ---------- clip sequencing ----------
-  // mode 0: seamless switch on the shared anchor frame; mode 1: crossfade from where the old clip is (interrupts)
+  // mode 0: seamless switch on the shared anchor frame; mode 1 (interrupts): a short VHS tracking glitch over the figure while the
+  // new clip fades in over the old one held whole, so the figure never turns see-through
   function start(name, mode, t0) {
     const now = performance.now();
     old = mode && cur ? cur : null; xfAt = now;
+    if (old && !STILL) { root.classList.remove('glitch'); void root.offsetWidth; root.classList.add('glitch'); clearTimeout(start.gt); start.gt = setTimeout(() => root.classList.remove('glitch'), 260); }
     cur = { name, t0: t0 == null ? now : t0, pass: 0 };
     root.dataset.state = name.replace(/_(t|loop)$/, '');
   }
@@ -118,9 +115,8 @@ window.DEL = (function () {
     advance(now);
     const k = old ? Math.min(1, (now - xfAt) / XF) : 1; if (k >= 1) old = null;
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, cv.width, cv.height);
-    g.globalCompositeOperation = 'lighter';
-    if (old) draw(old, now, 1 - k);
-    draw(cur, now, k);
+    if (old) draw(old, now, 1);
+    draw(cur, now, old ? k : 1);
   }
   // leave a loop: on its next pass boundary when that is close, otherwise now with a crossfade (hold loops barely move)
   function leave() {

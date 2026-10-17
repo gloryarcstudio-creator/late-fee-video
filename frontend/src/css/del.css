@@ -31,3 +31,9 @@
 
 /* portrait: Del stands behind the TV, cut at the thighs — no stand, no shadow */
 #stage.port #delStand, #stage.port #delShadow { display: none; }
+
+/* interrupt cut (wow over anything): a quick horizontal tracking jitter of the figure itself, no box drawn around it */
+#del.glitch #delFig canvas { animation: delGlitch .26s steps(1) both; }
+@keyframes delGlitch { 0% { transform: translateX(calc(-50% - 7px)) skewX(-4deg); } 25% { transform: translateX(calc(-50% + 5px)); opacity: .92; }
+  50% { transform: translateX(calc(-50% - 3px)) skewX(2deg); } 75% { transform: translateX(calc(-50% + 1px)); } 100% { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { #del.glitch #delFig canvas { animation: none; } }

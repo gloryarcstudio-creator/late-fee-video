@@ -15,6 +15,16 @@
   // one symbol runs on the same clock (phase = symbol type, not cell), so twins on the board move in sync; different symbols are
   // offset from each other. Each pass is followed by a rest on the first frame, baked into the keyframes so the sync never drifts.
   let IDLE = null, T0 = 0; const RULES = {};
+  const LINE_COLORS = ['#ffd34a', '#3de0ff', '#ff4fc3', '#7dff6a', '#ff8a3d', '#b48bff', '#4dffd2', '#ff5a6e'];
+  function winRule(n) {
+    const key = `symwin_${n}`;
+    if (!RULES[key]) {
+      const sheet = document.getElementById('symidleCss') || document.head.appendChild(Object.assign(document.createElement('style'), { id: 'symidleCss' }));
+      sheet.sheet.insertRule(`@keyframes ${key} { from { background-position-x: 0%; } to { background-position-x: 100%; } }`, 0);
+      RULES[key] = true;
+    }
+    return key;
+  }
   function idleRule(n, sec, rest) {
     const key = `symidle_${n}_${sec}_${rest}`.replace(/\./g, '_');
     if (!RULES[key]) {
@@ -49,10 +59,15 @@
   }
   function names(boardCol) { return boardCol.map(x => (typeof x === 'string' ? x : x.name)); }
 
-  function build(r, items, y, live) {
+  // blur: indexes of the items that fly past (motion-blurred copies); a standing board marks its hidden padding rows
+  function build(r, items, y, live, blur) {
     const st = cols[r].strip;
     st.textContent = '';
-    items.forEach((n, i) => st.appendChild(symEl(n, live && i >= 1 && i <= 3)));   // loops only on the three visible rows
+    items.forEach((n, i) => {
+      const d = st.appendChild(symEl(n, live && i >= 1 && i <= 3));   // loops only on the three visible rows
+      if (live && (i === 0 || i === 4)) d.classList.add('pad');
+      if (blur && blur(i)) d.classList.add('mb');
+    });
     st.style.transform = `translate3d(0,${-y * cell}px,0)`;
   }
 
@@ -91,22 +106,31 @@
         const cur = cols[r].cur;
         const items = opts.reverse ? cur.concat(fill, fin) : fin.concat(fill, cur);
         const from = opts.reverse ? 1 : n + 6, to = opts.reverse ? n + 6 : 1;
-        build(r, items, from);
+        // the filler is drawn blurred except the two next to the landing board, which pass slowly while the reel brakes
+        const blur = opts.fast ? null : opts.reverse ? (i => i >= 5 && i < 3 + n) : (i => i >= 7 && i < 5 + n);
+        build(r, items, from, false, blur);
+        cols[r].reel.classList.add('spin'); cols[r].reel.classList.remove('land');
         const antic = opts.anticipation && opts.anticipation[r] > 0;
         if (antic && !opts.fast) anticExtra += opts.turbo ? 500 : 1100;
         const dur = (650 + k * 170) * t + anticExtra; // reels after an anticipation reel wait for it
         if (antic) cols[r].reel.classList.add('antic');
-        const over = (opts.reverse ? 0.12 : -0.12) * cell;
+        // wind-up against the direction of travel, the run, an overshoot past the landing row and a bounce back
+        const dir = opts.reverse ? -1 : 1, wind = opts.fast ? 0 : 0.2 * cell, over = (opts.fast ? 0.04 : 0.17) * cell;
+        const D = Math.max(40, dur), w = opts.fast ? 0 : Math.min(0.14, 110 / D);
+        const Y = v => `translate3d(0,${v}px,0)`;
         const a = cols[r].strip.animate([
-          { transform: `translate3d(0,${-from * cell}px,0)` },
-          { transform: `translate3d(0,${-to * cell - over}px,0)`, offset: 0.9 },
-          { transform: `translate3d(0,${-to * cell}px,0)` },
-        ], { duration: Math.max(40, dur), easing: 'cubic-bezier(.35,.05,.45,1)', fill: 'forwards' });
+          { transform: Y(-from * cell), easing: 'cubic-bezier(.3,0,.6,1)' },
+          { transform: Y(-from * cell - dir * wind), offset: w || 0.0001, easing: 'cubic-bezier(.45,.05,.4,1)' },
+          { transform: Y(-to * cell + dir * over), offset: 0.88, easing: 'cubic-bezier(.3,0,.5,1)' },
+          { transform: Y(-to * cell - dir * over * 0.22), offset: 0.95, easing: 'ease-in-out' },
+          { transform: Y(-to * cell) },
+        ], { duration: D, fill: 'forwards' });
         anims.push(a);
         return a.finished.catch(() => {}).then(() => {
           a.cancel();
           cols[r].cur = fin; build(r, fin, 1, true);
-          cols[r].reel.classList.remove('antic');
+          cols[r].reel.classList.remove('antic', 'spin');
+          if (!opts.fast) { const rl = cols[r].reel; rl.classList.remove('land'); void rl.offsetWidth; rl.classList.add('land'); }
           if (opts.onStop) opts.onStop(r);
         });
       });
@@ -116,10 +140,19 @@
     spinning() { return anims.length > 0; },
 
     cellEl(reel, row) { return cols[reel].strip.children[row]; },
-    highlight(positions, cls = 'hit') { positions.forEach(p => { const e = this.cellEl(p.reel, p.row); if (e) e.classList.add(cls); }); },
+    // colour: the line's neon (frame, glow); the symbol's idle clip switches to a straight loop at full pace while it wins
+    highlight(positions, cls = 'hit', color) {
+      positions.forEach(p => {
+        const e = this.cellEl(p.reel, p.row); if (!e) return;
+        e.classList.add(cls); if (color) e.style.setProperty('--lc', color);
+        const b = e.querySelector('.idle'), c = IDLE && IDLE.clips[e.className.match(/s-(\w+)/)[1]];
+        if (b && c && !b.dataset.win) { b.dataset.win = 1; b.style.animation = `${winRule(c.n)} ${(c.sec * 0.6).toFixed(2)}s steps(${c.n - 1}) infinite`; }
+      });
+    },
+    lineColor: li => LINE_COLORS[(li - 1) % LINE_COLORS.length],
     dim(on) { root.classList.toggle('dimmed', !!on); },
     clear() {
-      root.querySelectorAll('.hit,.hit-s').forEach(e => e.classList.remove('hit', 'hit-s'));
+      root.querySelectorAll('.hit,.hit-s').forEach(e => { e.classList.remove('hit', 'hit-s'); e.style.removeProperty('--lc'); });
       this.dim(false); svg.textContent = '';
     },
     freeze(reels) { cols.forEach((c, r) => c.reel.classList.toggle('frozen', reels.includes(r))); },
@@ -139,12 +172,21 @@
       const W = N * cell + (N - 1) * gap, H = 3 * cell;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.textContent = '';
-      wins.forEach(w => {
+      const NS = 'http://www.w3.org/2000/svg', el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+      wins.forEach((w, k) => {
         const li = w.meta && w.meta.lineIndex; const pl = PAYLINES[li]; if (!pl) return;
-        const pts = pl.map((row, r) => `${r * (cell + gap) + cell / 2},${row * cell + cell / 2}`).join(' ');
-        const p = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        p.setAttribute('points', pts); p.setAttribute('class', 'pl');
-        svg.appendChild(p);
+        const xy = pl.map((row, r) => [r * (cell + gap) + cell / 2, row * cell + cell / 2]);
+        // run the line from the outer edges of reels 1 and 5 so it reads as a line through the whole window
+        xy.unshift([4, xy[0][1]]); xy.push([W - 4, xy[xy.length - 1][1]]);
+        const pts = xy.map(p => p.join(',')).join(' '), col = this.lineColor(li), delay = `${(k * 0.06).toFixed(2)}s`;
+        ['pg', 'pl', 'pc'].forEach(c => {
+          const p = el('polyline', { points: pts, class: c, pathLength: 1 }); if (c !== 'pc') p.style.stroke = col;
+          p.style.animationDelay = delay; svg.appendChild(p);
+        });
+        if (wins.length <= 3) {
+          const dot = el('circle', { r: 6 }), m = el('animateMotion', { dur: '1.1s', repeatCount: 'indefinite', path: 'M' + xy.map(p => p.join(',')).join(' L') });
+          dot.appendChild(m); svg.appendChild(dot);
+        }
       });
     },
   };

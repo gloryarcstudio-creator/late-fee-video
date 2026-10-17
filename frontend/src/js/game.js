@@ -49,7 +49,22 @@
     const el = $('osd'); el.textContent = text || ''; el.classList.toggle('show', !!text);
     clearTimeout(osd._t); if (text && ms) osd._t = setTimeout(() => el.classList.remove('show'), ms * (S.turbo ? 0.5 : 1));
   }
-  function popup(text) { const el = $('spinWin'); el.textContent = text; el.classList.toggle('hide', !text); }
+  // win plate under the reels; color = the neon of the line it reports (gold by default), each new text pops in
+  function popup(text, color) {
+    const el = $('spinWin'); if (color) el.style.setProperty('--lc', color); else el.style.removeProperty('--lc');
+    if (text && text !== el.textContent) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    el.textContent = text; el.classList.toggle('hide', !text);
+  }
+  // WIN field counts up to the new total instead of jumping
+  function winField(amount100) {
+    const el = $('winVal'), to = amount100 > 0 ? winMoney(amount100) : 0, from = winField.v || 0; winField.v = to;
+    cancelAnimationFrame(winField.raf);
+    if (!to) { el.textContent = '—'; return; }
+    const d = fast() || to <= from ? 0 : Math.min(900, 300 + 120 * Math.log2(1 + (to - from) / S.bet)), t0 = performance.now();
+    const dec = I18N.decimalsFor(to, I18N.currency());
+    const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = k < 1 ? money(from + (to - from) * (1 - Math.pow(1 - k, 3)), dec) : fmt(to); if (k < 1) winField.raf = requestAnimationFrame(step); };
+    step(t0);
+  }
   // Del: pose state machine in del.js; block events ride along with the pose requests
   const DEL_EVENT = { spin: 'spin', idle: 'stop', lean: 'antic', cheer: 'win', wow: 'bigwin', bored: 'stop' };
   function del(state) { DEL.set(state); if (DEL_EVENT[state]) DEL.event(DEL_EVENT[state]); }
@@ -205,12 +220,12 @@
     async setWin(e) { popup(fmt(winMoney(e.amount))); cheer(e.amount); AUDIO.sfx(e.amount >= 500 ? 'win_m' : 'win_s'); await wait(250); },
     async setTotalWin(e) {
       S.roundWin = e.amount;
-      $('winVal').textContent = e.amount > 0 ? fmt(winMoney(e.amount)) : '—';
+      winField(e.amount);
       if (S.inBonus) tapeCounter(e.amount);
     },
     async scatterWin(e) {
       Reels.highlight(e.positions, 'hit-s'); Reels.dim(true); sfx('scatter');
-      popup(`KEY ×${e.count}  ${fmt(winMoney(e.win))}`);
+      popup(`KEY ×${e.count}  ${fmt(winMoney(e.win))}`, '#3de0ff');
       await wait(900);
     },
     async freeSpinTrigger(e) {
@@ -264,7 +279,7 @@
       await Reels.spin(e.board, { reverse: true, turbo: S.turbo, fast: fast(), strip: freeStrip() });
       $('tracking').classList.add('hide');
       await showWins(e.wins, true);
-      popup(`${fmt(winMoney(e.win / e.mult))} ×${e.mult} = ${fmt(winMoney(e.win))}`); sfx('win_m');
+      popup(`${fmt(winMoney(e.win / e.mult))} ×${e.mult} = ${fmt(winMoney(e.win))}`, '#ff4fc3'); sfx('win_m');
       await wait(1400);
     },
     async secondTake(e) {
@@ -328,7 +343,7 @@
     },
     async finalWin(e) {
       S.roundWin = e.amount;
-      $('winVal').textContent = e.amount > 0 ? fmt(winMoney(e.amount)) : '—';
+      winField(e.amount);
       if (!S.roundHadBonus && !S.capped && e.amount > 0) {
         const tier = tierOf(winMoney(e.amount) / tierBase());
         if (tier) await bigWin(winMoney(e.amount));
@@ -351,19 +366,19 @@
     if (!wins || !wins.length) return;
     // gold frame while the wins show (batch 06), off at the next spin; a faint tint under 5× the bet, the full plate above
     const st = $('stage'); st.style.setProperty('--tvwin', winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)) / S.bet >= 5 ? 1 : .45); st.classList.add('tvwin');
-    Reels.dim(true);
-    wins.forEach(w => Reels.highlight(w.positions));
-    Reels.lines(wins);
-    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 500 : 700); return; }
-    await wait(700);
+    const col = w => Reels.lineColor((w.meta && w.meta.lineIndex) || 1);
+    const all = () => { Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions, 'hit', col(w))); Reels.lines(wins); };
+    all();
+    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 600 : 800); return; }
+    await wait(900);
     // one line at a time (max 6), then back to all
-    for (const w of wins.slice(0, 6)) {
+    if (wins.length > 1) for (const w of wins.slice(0, 6)) {
       if (S.skip) break;
-      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions); Reels.lines([w]); sfx('line_tick');
-      popup(`${Reels.LABEL[w.symbol] || w.symbol} ×${w.kind}  ${fmt(winMoney(w.win))}`);
-      await wait(420);
+      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions, 'hit', col(w)); Reels.lines([w]); sfx('line_tick');
+      popup(`${Reels.LABEL[w.symbol] || w.symbol} ×${w.kind}  ${fmt(winMoney(w.win))}`, col(w));
+      await wait(560);
     }
-    Reels.clear(); Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions)); Reels.lines(wins);
+    if (wins.length > 1) { Reels.clear(); all(); }
   }
 
   // media: { video } or { img }, full-bleed; { scene: true } lays it out like the big win scenes (whole frame on black, text on top)
@@ -412,7 +427,7 @@
         const tier = ladder[seg].k;
         if (tier !== lastTier) {
           if (lastTier) { AUDIO.sfx('bw_tier'); particles(14); }
-          bwScene(tier, !!lastTier); el.dataset.tier = tier; $('bigTitle').textContent = t(tier); lastTier = tier;
+          bwScene(tier, !!lastTier); el.dataset.tier = tier; const bt = $('bigTitle'); bt.textContent = t(tier); bt.classList.remove('punch'); void bt.offsetWidth; bt.classList.add('punch'); lastTier = tier;
         }
         $('bigAmt').textContent = money(v, dec);
         if (!done) requestAnimationFrame(frame);
@@ -424,7 +439,7 @@
   async function playRound(round) {
     S.bet = round.amount / M; S.mode = round.mode || 'base';
     S.roundWin = 0; S.capped = false; S.roundHadBonus = false; S.lastWins = null; S.band = null; Reels.band(null);
-    $('winVal').textContent = '—';
+    winField(0);
     for (const e of round.state || []) {
       const h = H[e.type];
       if (h) await h(e); else console.warn('unhandled event', e.type);
@@ -672,7 +687,7 @@
       const r = await fetch('assets/symbols/idle/idle.json'); if (!r.ok) return;
       const clips = await r.json(); if (!Object.keys(clips).length) return;
       await Promise.all(Object.keys(clips).map(k => new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = `${dir}sym_${k}_strip.webp`; })));
-      if (!fast()) Reels.idle({ dir, clips });
+      if (!fast()) Reels.idle({ dir, clips, rest: 4 });   // a pass every 6 s per symbol type: the board breathes instead of fidgeting
     } catch (e) { /* no idle loops */ }
   }
   function preload(ms = 12000) {
@@ -690,13 +705,13 @@
     layout(); window.addEventListener('resize', layout);
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');
     // splash counter as a tape counter
-    let n = 0; const ctr = setInterval(() => { n = Math.min(9999, n + 137); $('loadCounter').textContent = String(n).padStart(4, '0'); }, 40);
+    let n = 0; const ctr = setInterval(() => { n = Math.min(9999, n + 137); $('loadCounter').textContent = String(n).padStart(4, '0'); $('loadBar').style.setProperty('--k', (1 - Math.exp(-n / 2500)).toFixed(3)); }, 40);
     const audioReady = AUDIO.init().then(() => AUDIO.preload(AUDIO_CORE));
     if (S.replay) { await preload(); clearInterval(ctr); return startReplay(); }
     let auth;
     try { auth = await api.authenticate(); }
     catch (e) { clearInterval(ctr); return fatal(`${t('errAuth')} (${e.code || 'ERR_GEN'})`); }
-    await preload(); await Promise.race([audioReady, new Promise(r => setTimeout(r, 4000))]); clearInterval(ctr); $('loadCounter').textContent = '0000';
+    await preload(); await Promise.race([audioReady, new Promise(r => setTimeout(r, 4000))]); clearInterval(ctr); $('loadCounter').textContent = '0000'; $('loadBar').style.setProperty('--k', 1); $('splash').classList.add('ready');
     const cfg = auth.config || {};
     S.jur = cfg.jurisdiction || {};
     if (S.jur.socialCasino) I18N.setSocial(true);

@@ -55,7 +55,7 @@ async function open(browser, vp, mobile) {
     ok(`layout ${tag}: controls on screen, no overlap, not covered`, !m.out.length && !m.ov.length && !m.covered.length, JSON.stringify(m));
     if (vp[2]) ok(`touch size ${tag}: smallest button ${m.minBtn}px`, m.minBtn >= 28);
     ok(`no console errors ${tag}`, page.errors.length === 0, page.errors.slice(0, 2).join(' | '));
-    if (vp[2]) { await page.waitForTimeout(900); const late = page.urls.filter(u => /bg_bonus|del_lean_in_strip/.test(u)); ok(`deferred art loads after PLAY ${tag}`, late.length >= 2, late.length + ''); }
+    if (vp[2]) { await page.waitForTimeout(900); const late = page.urls.filter(u => /bg_bonus|del\/(m\/)?f\/lean_in_0\./.test(u)); ok(`deferred art loads after PLAY ${tag}`, late.length >= 2, late.length + ''); }
     await page.context().close();
   }
   // Space = one spin; held Space does not queue spins
