@@ -68,7 +68,7 @@ const results = []; const ok = (name, pass, info = '') => { results.push({ name,
     // a second big win in the same session plays its scene again (v26 left the last tier's video marked on and paused)
     if (vp === VIEW[0]) {
       await page.evaluate(() => { const S = window.__game.S; window.__bwP = window.__game.bigWin(S.bet * 25); });
-      await page.waitForTimeout(1200);
+      await page.waitForTimeout(2000); // past the 1.5 s intro: the loop is on
       const a = await page.evaluate(() => { const v = document.querySelector('#bigScene video.on'); return v ? v.currentTime : -1; });
       await page.waitForTimeout(500);
       const b = await page.evaluate(() => { const v = document.querySelector('#bigScene video.on'); return v ? v.currentTime : -1; });
