@@ -1,5 +1,6 @@
-// Big win scenes (batch 08): node tools/qa_bigwin.js BASE_URL OUT_DIR
-// per viewport: a CULT-sized win walks BIG → MEGA → EPIC → CULT, each tier on its own loop (playing, matching the title) for a beat;
+// Big win scenes (batch 08, intros batch 09): node tools/qa_bigwin.js BASE_URL OUT_DIR
+// per viewport: a CULT-sized win walks BIG → MEGA → EPIC → CULT, each tier on its own loop (playing, matching the title) for a beat,
+// entering through its intro clip that hands over to the loop with no empty frame;
 // shots of every tier, the max-win and bonus-total banners; then a bought bonus shows a big win after every 20×+ free spin
 const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
 const fs = require('fs');
@@ -28,8 +29,9 @@ const results = []; const ok = (name, pass, info = '') => { results.push({ name,
       (function f() {
         const el = document.getElementById('bigWin');
         if (!el.classList.contains('hide')) {
-          const v = document.querySelector('#bigScene video.on');
-          window.__bw.push({ t: performance.now() - t0, tier: el.dataset.tier, vid: v && v.dataset.tier, ct: v ? v.currentTime : -1, rs: v ? v.readyState : -1, title: document.getElementById('bigTitle').textContent });
+          const on = [...document.querySelectorAll('#bigScene video.on')], v = on.find(x => !x.classList.contains('in')) || on[0];
+          window.__bw.push({ t: performance.now() - t0, tier: el.dataset.tier, vid: v && v.dataset.tier, ct: v ? v.currentTime : -1, rs: v ? v.readyState : -1, title: document.getElementById('bigTitle').textContent,
+            n: on.length, intro: on.some(x => x.classList.contains('in')), loop: on.some(x => !x.classList.contains('in')) });
         }
         requestAnimationFrame(f);
       })();
@@ -47,8 +49,14 @@ const results = []; const ok = (name, pass, info = '') => { results.push({ name,
     ok(`${tag} scene matches title`, log.filter(r => r.tier).every(r => r.vid === r.tier), '');
     const playing = order.map(k => { const rs = log.filter(r => r.tier === k); return rs.length > 2 && Math.max(...rs.map(r => r.ct)) > rs[0].ct + 0.2; }); // loops wrap, so the furthest point counts
     ok(`${tag} every tier loop plays`, playing.every(Boolean), playing.join(','));
+    // intros: each tier opens on its intro, then its loop takes over; the scene is never empty while the overlay is up
+    const intros = order.map(k => { const rs = log.filter(r => r.tier === k); return rs.length && rs[0].intro; });
+    ok(`${tag} every tier enters through its intro`, intros.every(Boolean), intros.join(','));
+    const cult = log.filter(r => r.tier === 'cultWin'), handoff = cult.findIndex(r => r.loop);
+    ok(`${tag} CULT intro hands over to its loop`, handoff > 0 && cult.slice(handoff).every(r => r.loop) && cult[cult.length - 1].n === 1, `loop from row ${handoff} of ${cult.length}`);
+    ok(`${tag} scene never empty`, log.filter(r => r.tier).every(r => r.n >= 1), '');
     // max win and bonus total on the scene layout
-    await page.evaluate(() => { window.__game.banner('MAX WIN', '25 000× · $25,000.00', 1500, { img: 'assets/overlay/bw_max_key.webp', scene: true }); });
+    await page.evaluate(() => { window.__game.banner('MAX WIN', '25 000× · $25,000.00', 1500, { video: 'assets/overlay/bw_max_loop.webm', poster: 'assets/overlay/bw_max_key.webp', scene: true }); });
     await page.waitForTimeout(700); await page.screenshot({ path: `${OUT}/${tag}_max.png` }); await page.waitForTimeout(1300);
     await page.evaluate(() => { window.__game.banner('EPIC WIN', '$1,234.00', 1500, { video: 'assets/overlay/bw_epic_loop.webm', poster: 'assets/overlay/bw_epic_key.webp', scene: true }); });
     await page.waitForTimeout(900); await page.screenshot({ path: `${OUT}/${tag}_bonus_total.png` }); await page.waitForTimeout(1300);
@@ -57,6 +65,16 @@ const results = []; const ok = (name, pass, info = '') => { results.push({ name,
     const intro = await page.evaluate(() => ({ scene: document.getElementById('banner').classList.contains('scene'), loop: document.getElementById('bannerVideo').loop, poster: document.getElementById('bannerVideo').getAttribute('poster') }));
     ok(`${tag} bonus intro banner back to full-bleed`, !intro.scene && !intro.loop && !intro.poster, JSON.stringify(intro));
     await page.waitForTimeout(800);
+    // a second big win in the same session plays its scene again (v26 left the last tier's video marked on and paused)
+    if (vp === VIEW[0]) {
+      await page.evaluate(() => { const S = window.__game.S; window.__bwP = window.__game.bigWin(S.bet * 25); });
+      await page.waitForTimeout(1200);
+      const a = await page.evaluate(() => { const v = document.querySelector('#bigScene video.on'); return v ? v.currentTime : -1; });
+      await page.waitForTimeout(500);
+      const b = await page.evaluate(() => { const v = document.querySelector('#bigScene video.on'); return v ? v.currentTime : -1; });
+      ok(`${tag} second big win plays its scene`, a >= 0 && b > a + 0.2, `${a.toFixed(2)} → ${b.toFixed(2)}`);
+      await page.evaluate(() => window.__bwP);
+    }
     ok(`${tag} no errors`, !errors.length, errors.slice(0, 3).join(' | '));
     await ctx.close();
   }

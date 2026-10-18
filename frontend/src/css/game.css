@@ -51,9 +51,13 @@ button { font: inherit; color: inherit; }
 /* TV: #tv is the reel box; #screen (blue tube) and #tvFrame (keyed CRT art) are positioned around it from vars set in layout() */
 #tv { position: absolute; width: calc(var(--cell) * 5 + var(--gap) * 4); height: calc(var(--cell) * 3); z-index: 1; }
 #screen { position: absolute; left: calc(-1 * var(--pad)); top: calc(-1 * var(--holeTop)); width: calc(100% + 2 * var(--pad)); height: calc(100% + 2 * var(--holeTop));
-  background: radial-gradient(ellipse at 50% 45%, #2347d8 0%, #16289c 65%, #0c1562 100%); border-radius: 5% / 7%; overflow: hidden; z-index: 0; }
+  background: #16289c url(../assets/scene/screen_base.webp) center / 100% 100% no-repeat; border-radius: 5% / 7%; overflow: hidden; z-index: 0; }
+/* batch 09 tube art (scanlines, glass, tracking noise at the bottom); the bonus tube fades in over it, fetched after PLAY */
+#screen::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url(../assets/scene/screen_bonus.webp) center / 100% 100% no-repeat; opacity: 0; transition: opacity .6s; }
+#stage.bonus #screen::before { opacity: 1; }
+#stage:not(.late-art):not(.bonus) #screen::before { background-image: none; }
 #screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 3px, rgba(0,0,0,.22) 3px 4px), radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 20, .55) 100%); }
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 3px, rgba(0,0,0,.12) 3px 4px), radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 20, .5) 100%); }
 /* curved-glass glint over the reels, a slow roll bar like a real tube */
 #tv::after { content: ""; position: absolute; left: calc(-1 * var(--pad)); top: calc(-1 * var(--holeTop)); width: calc(100% + 2 * var(--pad)); height: calc(100% + 2 * var(--holeTop)); z-index: 3; pointer-events: none; border-radius: 5% / 7%;
   background: linear-gradient(160deg, rgba(255, 255, 255, .10) 0%, rgba(255, 255, 255, .03) 22%, transparent 38%),
@@ -220,8 +224,9 @@ button { font: inherit; color: inherit; }
 #bigScene video, .overlay.scene #bannerImg, .overlay.scene #bannerVideo { object-fit: contain; }
 #bigScene video { opacity: 0; } #bigScene video.on { opacity: 1; }
 #stage.port #bigScene, #stage.port .overlay.scene #bannerImg, #stage.port .overlay.scene #bannerVideo { inset: auto; left: 50%; top: 58%; width: 1180px; height: 664px; transform: translate(-50%, -50%); }
-/* code-drawn entrance and tier switch (no intro clips): the tape "powers on" from a bright line, a tier change tears and shifts */
-#bigWin.open #bigScene video.on { animation: bwOn .5s cubic-bezier(.2, .7, .3, 1); }
+/* code-drawn entrance (when the tier's intro clip is not ready): the tape "powers on" from a bright line; a tier change tears and shifts.
+   Intro clips (batch 09, .in) bring their own entrance and end on the loop's first frame, so the loop after them (.calm) cuts in still */
+#bigWin.open #bigScene video.on:not(.in):not(.calm) { animation: bwOn .5s cubic-bezier(.2, .7, .3, 1); }
 @keyframes bwOn { 0% { transform: scale(1.06, .006); filter: brightness(5); } 30% { transform: scale(1.03, .03); filter: brightness(3.5); } 100% { transform: none; filter: none; } }
 #bigScene.glitch video.on { animation: bwGlitch .36s steps(1) both; }
 @keyframes bwGlitch { 0% { transform: translateX(-16px); filter: hue-rotate(70deg) contrast(1.7) brightness(1.6); } 18% { transform: translateX(11px) skewX(-5deg); filter: hue-rotate(-50deg) saturate(2.2); }
@@ -317,7 +322,6 @@ button { font: inherit; color: inherit; }
 #stage.port #betField .btn.round { width: 64px; height: 64px; --gy: 5.9px; }
 
 #stage.busy #spinBtn { border-color: #888; }
-#stage.bonus #screen { background: radial-gradient(ellipse at 50% 45%, #5a1f6e 0%, #2d1252 65%, #150a30 100%); }
 #stage.replay #hud, #stage.replay #buyBtn, #stage.replay #anteBtn { display: none; }
 
 /* ---------- dialogs (unscaled, responsive) ---------- */

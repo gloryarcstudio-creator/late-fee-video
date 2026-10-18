@@ -92,22 +92,37 @@
   function playVideo(v) { try { v.muted = true; v.currentTime = 0; const r = v.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
   // big win scenes (batch 08): a 4 s loop per tier, the key frame as its poster. The <video>s are made after the game is shown
   // (posters ~130 KB load then), a loop downloads only when a win reaches its tier; reduced motion keeps the posters still.
+  // Batch 09: a 1.5 s intro per tier (.in, ~40–270 KB) ends on the loop's first frame; it plays when it is buffered by the time the
+  // count reaches its tier (BIG's is fetched after PLAY, the rest with the loops when a win starts), otherwise the loop enters in code.
   const BW_FILE = { bigWin: 'big', megaWin: 'mega', epicWin: 'epic', cultWin: 'cult' };
   const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const bwBase = tier => `assets/overlay/bw_${BW_FILE[tier] || 'big'}_`;
   function bwScenes() {
     const box = $('bigScene'); if (box.childElementCount) return;
-    for (const k of Object.keys(BW_FILE)) {
-      const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
-      v.dataset.tier = k; v.poster = bwBase(k) + 'key.webp'; v.src = vidSrc(bwBase(k) + 'loop'); box.appendChild(v);
+    for (const intro of [false, true]) for (const k of Object.keys(BW_FILE)) {
+      const v = document.createElement('video'); v.muted = true; v.loop = !intro; v.playsInline = true; v.preload = 'none';
+      v.dataset.tier = k; if (intro) v.className = 'in'; else v.poster = bwBase(k) + 'key.webp';
+      v.src = vidSrc(bwBase(k) + (intro ? 'in' : 'loop')); box.appendChild(v);
     }
+    const big = box.querySelector('video.in[data-tier=bigWin]');
+    if (!stillMotion()) { big.dataset.req = 1; big.preload = 'auto'; big.load(); }
   }
   function bwScene(tier, glitch) {
-    const box = $('bigScene');
-    for (const v of box.children) {
-      const on = v.dataset.tier === tier; if (on === v.classList.contains('on')) continue;
-      v.classList.toggle('on', on);
-      if (!on) { try { v.pause(); } catch (e) {} } else if (!stillMotion()) playVideo(v);
+    const box = $('bigScene'), vids = [...box.children];
+    const loop = vids.find(v => v.dataset.tier === tier && !v.classList.contains('in')), intro = vids.find(v => v.dataset.tier === tier && v.classList.contains('in'));
+    const useIntro = !stillMotion() && intro && intro.readyState >= 3;
+    const show = useIntro ? intro : loop;
+    for (const v of vids) if (v !== show && v.classList.contains('on')) { v.classList.remove('on', 'calm'); v.onended = null; try { v.pause(); } catch (e) {} }
+    if (!show.classList.contains('on')) {
+      loop.classList.remove('calm'); show.classList.add('on');
+      if (!stillMotion()) playVideo(show);
+      // intro ended on its last frame (= loop frame 0): start the loop under it, then drop the intro once the loop is playing
+      if (useIntro) intro.onended = () => {
+        intro.onended = null; if (!intro.classList.contains('on')) return;
+        loop.classList.add('on', 'calm'); playVideo(loop);
+        const drop = () => { if (intro.classList.contains('on') && loop.classList.contains('on')) intro.classList.remove('on'); };
+        loop.addEventListener('playing', drop, { once: true }); setTimeout(drop, 250);
+      };
     }
     if (glitch) { $('bigWin').classList.remove('open'); box.classList.remove('glitch'); void box.offsetWidth; box.classList.add('glitch'); }
   }
@@ -338,7 +353,8 @@
     },
     async wincap(e) {
       S.capped = true; Reels.unfreeze(); osd(''); AUDIO.setMusic(null); AUDIO.stinger('stg_maxwin');
-      particles(40); await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000, { img: 'assets/overlay/bw_max_key.webp', scene: true });
+      particles(40); await banner(t('maxWin'), `${(e.amount / 100).toLocaleString('en').replace(/,/g, ' ')}× · ${fmt(winMoney(e.amount))}`, 4000,
+        fast() ? { img: 'assets/overlay/bw_max_key.webp', scene: true } : { video: vidSrc('assets/overlay/bw_max_loop'), poster: 'assets/overlay/bw_max_key.webp', scene: true });
       AUDIO.setMusic(SCENE_MUSIC());
     },
     async finalWin(e) {
@@ -395,7 +411,7 @@
 
   // Count-up paced by tier: each tier the win reaches gets its own stretch of the count (and its scene), so a CULT win shows
   // BIG, MEGA and EPIC for a beat each instead of flashing past them; the last stretch eases out. First tap jumps to the total.
-  const BW_SEG = { bigWin: 1600, megaWin: 1200, epicWin: 1200, cultWin: 1400 };
+  const BW_SEG = { bigWin: 1600, megaWin: 1500, epicWin: 1500, cultWin: 1500 }; // each tier holds at least its 1.5 s intro
   function bigWin(amount, base = tierBase()) {
     const el = $('bigWin'), x = amount / base;
     const dec = I18N.decimalsFor(amount, I18N.currency());
@@ -404,7 +420,7 @@
     const ladder = [], up = TIERS.slice().reverse();
     up.forEach(([th, k], i) => { if (i && x < th) return; const nx = up[i + 1] ? up[i + 1][0] : Infinity; ladder.push({ k, lo: i ? th * base : 0, hi: Math.min(x, nx) * base, d: BW_SEG[k] }); });
     ladder[ladder.length - 1].d += 700;
-    // fetch the loops this win will reach while BIG plays
+    // fetch the intros and loops this win will reach while BIG plays
     for (const v of $('bigScene').children) if (ladder.some(l => l.k === v.dataset.tier) && !v.dataset.req && !stillMotion()) { v.dataset.req = 1; v.preload = 'auto'; v.load(); }
     el.dataset.tier = ''; el.classList.remove('hide', 'open'); void el.offsetWidth; el.classList.add('open');
     AUDIO.stinger('bw_tier'); AUDIO.setMusic('mus_bigwin'); del('wow'); particles();
@@ -412,7 +428,7 @@
     return new Promise(res => {
       const sp = S.turbo ? 0.5 : 1;
       let seg = 0, s0 = performance.now(), skipped = false, ended = false;
-      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); for (const v of $('bigScene').children) { try { v.pause(); } catch (e) {} } AUDIO.setMusic(SCENE_MUSIC()); DEL.event('calm'); res(); };
+      const end = () => { if (ended) return; ended = true; el.removeEventListener('pointerdown', onTap); document.removeEventListener('keydown', onKey); el.classList.add('hide'); for (const v of $('bigScene').children) { v.onended = null; v.classList.remove('on', 'calm'); try { v.pause(); } catch (e) {} } AUDIO.setMusic(SCENE_MUSIC()); DEL.event('calm'); res(); };
       const onTap = () => { if (!skipped) { skipped = true; } else end(); };
       const onKey = e => { if (e.code === 'Space') { e.preventDefault(); if (!S.jur.disabledSpacebar) onTap(); } };
       el.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey);

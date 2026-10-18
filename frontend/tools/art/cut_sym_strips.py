@@ -6,13 +6,29 @@ masters_dir: art/masters/symbols/sym_<ID>.png (512x512 stills the game shows) â€
 import sys, os, glob, json, subprocess, tempfile
 from PIL import Image
 import numpy as np
+# --band: key only a thin rim next to the border-connected green (tools/art/key_symbol.py), for objects that are green themselves
+BAND = '--band' in sys.argv; sys.argv = [x for x in sys.argv if x != '--band']
 clips, masters, out = sys.argv[1:4]
 N = int(sys.argv[4]) if len(sys.argv) > 4 else 24
 SZ = int(sys.argv[5]) if len(sys.argv) > 5 else 256
 MSZ = int(sys.argv[6]) if len(sys.argv) > 6 else 128
 os.makedirs(os.path.join(out, 'm'), exist_ok=True)
 
+def key_band(fr, band=8):
+    import cv2
+    a = np.asarray(fr.convert('RGB')).astype(np.float32); r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    d = np.sqrt(r ** 2 + (255 - g) ** 2 + b ** 2)
+    n, lab = cv2.connectedComponents((d < 60).astype(np.uint8), connectivity=4)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    bg = np.isin(lab, list(edge)).astype(np.uint8)
+    rim = cv2.dilate(bg, np.ones((2 * band + 1, 2 * band + 1), np.uint8)).astype(bool)
+    spill = np.clip((g - np.maximum(r, b)) / 255.0, 0, 1)
+    alpha = np.where(rim, np.clip(1.0 - (spill - 0.08) / 0.35, 0, 1), 1.0); alpha[bg.astype(bool)] = 0
+    g2 = np.where(rim, np.minimum(g, np.maximum(r, b) * 1.05 + 8), g)
+    return Image.fromarray(np.dstack([r, g2, b, alpha * 255]).clip(0, 255).astype(np.uint8), 'RGBA')
+
 def key_green(fr):
+    if BAND: return key_band(fr, 4)
     a = np.asarray(fr.convert('RGB')).astype(np.float32); r, g, b = a[..., 0], a[..., 1], a[..., 2]
     spill = np.clip((g - np.maximum(r, b)) / 255.0, 0, 1)           # how green over the other channels
     alpha = np.clip(1.0 - (spill - 0.08) / 0.35, 0, 1)                 # soft edge
