@@ -15,7 +15,7 @@ let fails = 0; const ok = (n, p, i = '') => { fails += p ? 0 : 1; console.log((p
     window.__drawn = []; const f0 = window.fetch, c0 = window.createImageBitmap, d0 = CanvasRenderingContext2D.prototype.drawImage;
     window.fetch = (u, ...a) => f0(u, ...a).then(r => { const b0 = r.blob.bind(r); r.blob = () => b0().then(b => { b.__u = String(u); return b; }); return r; });
     window.createImageBitmap = (src, ...a) => c0(src, ...a).then(b => { b.__u = src.__u || src.src; return b; });
-    CanvasRenderingContext2D.prototype.drawImage = function (im, ...a) { if (this.canvas.closest && this.canvas.closest('#delFig')) window.__drawn.push([performance.now(), String(im.__u || im.src || '').split('/').pop()]); return d0.call(this, im, ...a); };
+    CanvasRenderingContext2D.prototype.drawImage = function (im, ...a) { if (this.canvas.closest && this.canvas.closest('#delFig')) window.__drawn.push([performance.now(), String(im.__u || im.src || '').split('/').pop().split('?')[0]]); return d0.call(this, im, ...a); };
   });
   await page.goto(`${BASE}/index.html?sessionID=sess-ok&rgs_url=${BASE.replace(/^https?:\/\//, 'http://')}&lang=en&currency=USD`);
   await page.waitForSelector('#splashBtn:not([disabled])', { timeout: 20000 });
@@ -27,6 +27,8 @@ let fails = 0; const ok = (n, p, i = '') => { fails += p ? 0 : 1; console.log((p
       for (let y = y0; y < y1; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 128) { fx += x; fn++; }
       window.__px.push({ op: op / (d.length / 16), fx: fn ? fx / fn : -1, clip: DEL.state().clip }); }
       requestAnimationFrame(f); }; requestAnimationFrame(f); });
+  // the VHS tracking glitch belongs to the wow cut only: on every pose change it read as Del jerking
+  await page.evaluate(() => { window.__gl = []; let on = false; new MutationObserver(() => { const g = document.getElementById('del').classList.contains('glitch'); if (g && !on) window.__gl.push(DEL.state().clip); on = g; }).observe(document.getElementById('del'), { attributes: true, attributeFilter: ['class'] }); });
   await page.evaluate(() => { window.__seq = []; new MutationObserver(() => window.__seq.push(document.getElementById('del').dataset.state)).observe(document.getElementById('del'), { attributes: true, attributeFilter: ['data-state'] }); });
   await page.waitForTimeout(2500); // preloadAll after lateArt
   // idle: every drawn frame is the next one in the loop (or the same one held), never a frame from elsewhere in the clip
@@ -52,6 +54,7 @@ let fails = 0; const ok = (n, p, i = '') => { fails += p ? 0 : 1; console.log((p
   ok('bored → spin perks up to idle', seq.join('>') === 'bored_in>bored>bored_out>idle', seq.join('>'));
   seq = await chain(['lean'], 1500); seq = seq.concat(await chain(['wow'], 4400));
   ok('wow interrupts lean and lands on idle', seq.slice(-2).join('>') === 'wow>idle' && seq[0] === 'lean_in', seq.join('>'));
+  { const gl = await page.evaluate(() => window.__gl); ok('VHS glitch only on the wow cut', gl.length >= 1 && gl.every(c => c === 'wow_t'), gl.join(' ')); }
   const px = await page.evaluate(() => window.__px.slice(1));
   const minOp = Math.min(...px.map(p => p.op)), fxs = px.filter(p => !/^(cheer|wow|rew)/.test(p.clip)).map(p => p.fx);
   ok('figure drawn in every sampled frame', px.length > 200 && minOp > 0.2, `${px.length} frames, min opaque share ${minOp.toFixed(3)}`);

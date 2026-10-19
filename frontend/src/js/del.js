@@ -39,6 +39,9 @@ window.DEL = (function () {
   // per-frame shifts are given for the 12 fps frames; the in-betweens take the mean of their neighbours
   const off = {}; for (const k in OFF) off[k] = OFF[k].map(v => v.split(',').map(Number)).map(a => a.length < 2 ? a : a.flatMap((x, i) => i + 1 < a.length ? [x, (x + a[i + 1]) / 2] : [x]));
   let root, cv, g, dir = 'assets/del/f/', FW = 384, FH = 754, S = 1;
+  // the build's ?v=N (tools/build_fe.py) also goes on the frame URLs: frame files kept their names when the 12 fps sets became 24 fps,
+  // so a browser or CDN cache from an older build would hand back other poses under the same names
+  const VQ = ((document.currentScript && document.currentScript.src.match(/\?v=[^&#]+/)) || [''])[0];
   let hold = 'idle';        // the pose Del is in (or heading to) between clips
   let want = 'idle';        // the hold state the game asked for
   let shot = null;          // one pending one-shot
@@ -56,7 +59,7 @@ window.DEL = (function () {
     const done = (i, v) => { settled[name] = (settled[name] || 0) + 1; if (v) { frames[name][i] = v; if (++got[name] === n) loaded[name] = true; } };
     const img = (i, url) => { const im = new Image(); im.onload = () => done(i, im); im.onerror = () => done(i, null); im.src = url; };
     for (let i = 0; i < n; i++) {
-      const url = `${dir}${name}_${i}.webp`;
+      const url = `${dir}${name}_${i}.webp${VQ}`;
       if (BIT) fetch(url).then(r => r.ok ? r.blob() : Promise.reject(r.status)).then(b => done(i, b), () => img(i, url)); else img(i, url);
     }
   }
@@ -102,12 +105,12 @@ window.DEL = (function () {
   }
 
   // ---------- clip sequencing ----------
-  // mode 0: seamless switch on the shared anchor frame; mode 1 (interrupts): a short VHS tracking glitch over the figure while the
-  // new clip fades in over the old one held whole, so the figure never turns see-through
+  // mode 0: seamless switch on the shared anchor frame; mode 1 (interrupts): the new clip fades in over the old one held whole, so
+  // the figure never turns see-through; only the wow cut adds a short VHS tracking glitch (on every pose change it read as jerking)
   function start(name, mode, t0) {
     const now = performance.now();
     old = mode && cur ? cur : null; xfAt = now;
-    if (old && !STILL) { root.classList.remove('glitch'); void root.offsetWidth; root.classList.add('glitch'); clearTimeout(start.gt); start.gt = setTimeout(() => root.classList.remove('glitch'), 260); }
+    if (old && name === 'wow_t' && !STILL) { root.classList.remove('glitch'); void root.offsetWidth; root.classList.add('glitch'); clearTimeout(start.gt); start.gt = setTimeout(() => root.classList.remove('glitch'), 260); }
     cur = { name, t0: t0 == null ? now : t0, pass: 0 };
     root.dataset.state = name.replace(/_(t|loop)$/, '');
   }
@@ -201,5 +204,5 @@ window.DEL = (function () {
     crt = root.querySelector('#delStand canvas'); if (crt) { ctx = crt.getContext('2d'); setInterval(noise, 125); }
     load('idle'); start('idle', 0); requestAnimationFrame(tick);
   }
-  return { init, set, event, preloadAll, state: () => ({ clip: cur && cur.name, hold, want, shot }), CLIPS, SPEED };
+  return { init, set, event, preloadAll, state: () => ({ clip: cur && cur.name, hold, want, shot }), CLIPS, SPEED, V: VQ };
 })();
