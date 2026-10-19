@@ -8,6 +8,8 @@
 // two poses left both half transparent, and Del showed the shelves through him on big moves). Clips run at SPEED of their authored speed, and the frames of the pose transitions carry a stabilising shift (OFF, tools/art/del_offsets.py) so the feet stay put
 // instead of drifting and jumping sideways. A canvas never draws a loaded image as blank (whole strips as CSS backgrounds fell
 // out of the browser's decoded-image budget and Del vanished for whole passes); a clip starts only once its frames have arrived.
+// The ~600 frames are fetched as bytes and decoded here into ImageBitmaps a few frames ahead of the playhead, at most KEEP at a
+// time: with all of them as <img> a browser showed other frames of the loop in place of every second frame (v26–v27).
 window.DEL = (function () {
   // name: [frames, seconds, loop, startPose, endPose]
   // (frame counts of the 12 fps sources; the 24 fps sets hold 2n − 1 frames, see N below)
@@ -42,15 +44,34 @@ window.DEL = (function () {
   let shot = null;          // one pending one-shot
   let cur = null, old = null, xfAt = 0;   // clip on screen { name, t0, pass }, the one it crossfades from, crossfade start
   const frames = {}, got = {}, loaded = {}, settled = {};
+  const BIT = typeof createImageBitmap === 'function' && typeof fetch === 'function' && location.protocol !== 'file:';
+  const bm = new Map(), KEEP = 28;   // `${clip}_${i}` → ImageBitmap, or the Promise while it decodes; Map order = least recent first
+  let last = null;                   // the frame on the canvas, redrawn while the next one decodes
   const step = name => CLIPS[name][1] / SPEED / (CLIPS[name][0] - 1) * 1000;   // ms per frame
   const span = name => (CLIPS[name][0] - 1) * step(name);                        // ms per pass
 
   function load(name) {
     if (frames[name]) return;
-    const n = CLIPS[name][0]; got[name] = 0;
-    frames[name] = Array.from({ length: n }, (_, i) => {
-      const im = new Image(); im.onload = () => { settled[name] = (settled[name] || 0) + 1; if (++got[name] === n) loaded[name] = true; }; im.onerror = () => { settled[name] = (settled[name] || 0) + 1; }; im.src = `${dir}${name}_${i}.webp`; return im;
-    });
+    const n = CLIPS[name][0]; got[name] = 0; frames[name] = new Array(n);
+    const done = (i, v) => { settled[name] = (settled[name] || 0) + 1; if (v) { frames[name][i] = v; if (++got[name] === n) loaded[name] = true; } };
+    const img = (i, url) => { const im = new Image(); im.onload = () => done(i, im); im.onerror = () => done(i, null); im.src = url; };
+    for (let i = 0; i < n; i++) {
+      const url = `${dir}${name}_${i}.webp`;
+      if (BIT) fetch(url).then(r => r.ok ? r.blob() : Promise.reject(r.status)).then(b => done(i, b), () => img(i, url)); else img(i, url);
+    }
+  }
+  // the decoded frame, or null while it decodes (the decode starts here); <img> frames (no fetch / createImageBitmap) as they are
+  function bitmap(name, i) {
+    const src = frames[name] && frames[name][i]; if (!src) return null;
+    if (!(src instanceof Blob)) return src.naturalWidth ? src : null;
+    const k = name + '_' + i, v = bm.get(k);
+    if (v) { if (v instanceof Promise) return null; bm.delete(k); bm.set(k, v); return v; }
+    const p = createImageBitmap(src).then(b => { if (bm.get(k) === p) { bm.set(k, b); trim(); } else b.close(); }, () => bm.delete(k));
+    bm.set(k, p); return null;
+  }
+  function trim() {
+    let extra = bm.size - KEEP;
+    for (const [k, v] of bm) { if (extra <= 0) break; if (v instanceof Promise || (last && last.im === v)) continue; v.close(); bm.delete(k); extra--; }
   }
   // 24 fps sets are ~600 frames: fetch the clips in the order the game first needs them (anticipation, wins, features, bored)
   const ORDER = ['lean_in', 'lean_loop', 'lean_out', 'cheer_t', 'wow_t', 'pause_in', 'pause_loop', 'pause_out', 'rew_t', 'bored_in', 'bored_loop', 'bored_out'];
@@ -62,9 +83,10 @@ window.DEL = (function () {
 
   // ---------- drawing ----------
   function frame(name, i, w) {
-    const im = frames[name][i], o = off[name]; if (w <= 0.002 || !im.naturalWidth) return;
+    const im = bitmap(name, i), o = off[name]; if (w <= 0.002 || !im) return false;
     const dx = o ? o[0][o[0].length > 1 ? i : 0] : 0, dy = o ? o[1][o[1].length > 1 ? i : 0] : 0;
     g.globalAlpha = Math.min(1, w); g.drawImage(im, (PAD + dx) * S, dy * S, FW, FH);
+    if (w >= 1) last = { im, x: (PAD + dx) * S, y: dy * S }; return true;
   }
   // frame position of a clip at `now`: loops wrap, transitions and one-shots hold their last frame
   function at(s, now) {
@@ -74,10 +96,9 @@ window.DEL = (function () {
     return loop ? p % (n - 1) : Math.min(p, n - 1);
   }
   function draw(s, now, w) {
-    const n = CLIPS[s.name][0], i = Math.min(n - 1, Math.round(at(s, now)));
-    frame(s.name, i, w);
-    const ahead = frames[s.name][Math.min(i + 2, n - 1)];   // decode the next frame off the draw path
-    if (ahead.decode && !ahead._dec && ahead.naturalWidth) { ahead._dec = 1; ahead.decode().catch(() => {}); }
+    const [n, , loop] = CLIPS[s.name], i = Math.min(n - 1, Math.round(at(s, now)));
+    for (let j = 1; j <= 4; j++) bitmap(s.name, loop ? (i + j) % (n - 1) : Math.min(n - 1, i + j));   // decode ahead
+    return frame(s.name, i, w);
   }
 
   // ---------- clip sequencing ----------
@@ -114,9 +135,11 @@ window.DEL = (function () {
     if (!cur || !loaded[cur.name] || document.visibilityState === 'hidden') return;   // keep the last picture until frames arrive
     advance(now);
     const k = old ? Math.min(1, (now - xfAt) / XF) : 1; if (k >= 1) old = null;
+    const nx = nextName(); if (nx !== cur.name && frames[nx]) for (let j = 0; j < 3; j++) bitmap(nx, j);   // the clip that chains next
+    const keep = last;
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, cv.width, cv.height);
-    if (old) draw(old, now, 1);
-    draw(cur, now, old ? k : 1);
+    const drawn = (old ? draw(old, now, 1) : false) | draw(cur, now, old ? k : 1);
+    if (!drawn && keep) { g.globalAlpha = 1; g.drawImage(keep.im, keep.x, keep.y, FW, FH); last = keep; }   // its frame still decodes: hold
   }
   // leave a loop: on its next pass boundary when that is close, otherwise now with a crossfade (hold loops barely move)
   function leave() {
