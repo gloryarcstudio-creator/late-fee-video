@@ -223,7 +223,9 @@ button { font: inherit; color: inherit; }
 #bigScene { position: absolute; inset: 0; pointer-events: none; }
 #bigScene video, .overlay.scene #bannerImg, .overlay.scene #bannerVideo { object-fit: contain; }
 #bigScene video { opacity: 0; } #bigScene video.on { opacity: 1; }
-#stage.port #bigScene, #stage.port .overlay.scene #bannerImg, #stage.port .overlay.scene #bannerVideo { inset: auto; left: 50%; top: 58%; width: 1180px; height: 664px; transform: translate(-50%, -50%); }
+/* portrait: the clips' picture sits in the lower 60 % of their frame, so the frame is centred high enough that the picture
+   starts right under the title, amount and "tap to skip" instead of down by the bet bar */
+#stage.port #bigScene, #stage.port .overlay.scene #bannerImg, #stage.port .overlay.scene #bannerVideo { inset: auto; left: 50%; top: 35%; width: 1180px; height: 664px; transform: translate(-50%, -50%); }
 /* code-drawn entrance (when the tier's intro clip is not ready): the tape "powers on" from a bright line; a tier change tears and shifts.
    Intro clips (batch 09, .in) bring their own entrance and end on the loop's first frame, so the loop after them (.calm) cuts in still */
 #bigWin.open #bigScene video.on:not(.in):not(.calm) { animation: bwOn .5s cubic-bezier(.2, .7, .3, 1); }
@@ -341,8 +343,15 @@ button { font: inherit; color: inherit; }
 .buy-item img { width: 56px; height: 84px; object-fit: contain; flex: none; }
 .buy-item > div { min-width: 0; }
 .buy-item b { display: block; font-size: 1.15em; } .buy-item span { display: block; color: #bbb; font-size: .9em; } .buy-item em { font-style: normal; color: var(--wild); }
-#buyConfirm { border-top: 1px solid #555; margin-top: 10px; padding-top: 10px; }
-#buyConfirm .btn { margin-right: 10px; }
+/* purchase confirmation: its own window and backdrop over the catalog */
+#askBack { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 42; }
+.dlg.ask { z-index: 43; width: min(380px, 90vw); text-align: center; outline: none; }
+.dlg.ask img { display: block; width: 80px; height: 120px; object-fit: contain; margin: 4px auto 0; }
+.dlg.ask h2 { margin: 8px 0 4px; }
+#buyAskPrice { margin: 0 0 8px; color: var(--wild); font-family: var(--f-title); font-size: 1.5em; }
+#buyConfirmText { margin: 0 0 14px; color: #ccc; }
+.dlg.ask .row { justify-content: center; gap: 12px; margin-bottom: 4px; }
+.dlg.ask .btn { min-width: 7.5em; }
 table.t { border-collapse: collapse; width: 100%; }
 table.t td, table.t th { border: 1px solid #444; padding: 4px 6px; text-align: left; }
 .mini { display: inline-block; min-width: 3.2em; padding: 2px 4px; text-align: center; border: 1px solid #555; font-weight: 700; }
@@ -391,6 +400,7 @@ table.t td, table.t th { border: 1px solid #444; padding: 4px 6px; text-align: l
   .dlg .btn { padding: 3px 9px; font-size: 12px; }
   #splash .blue { gap: 2vh; }
   .buy-item { margin: 4px 0; gap: 8px; } .buy-item img { width: 34px; height: 52px; }
+  .dlg.ask img { width: 36px; height: 54px; } .dlg.ask h2 { margin: 2px 0; } #buyAskPrice { margin: 0 0 4px; font-size: 1.25em; } #buyConfirmText { margin: 0 0 6px; }
 }
 #devPanel { position: fixed; left: 4px; bottom: 4px; z-index: 50; font-size: 11px; background: rgba(0,0,0,.8); padding: 4px; border: 1px solid #d84; }
 #devPanel button { font-size: 11px; padding: 2px 5px; margin: 1px; background: #333; border: 1px solid #666; }

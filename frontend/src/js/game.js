@@ -523,9 +523,18 @@
   let openDlg = null;
   function dlg(id, on) {
     if (openDlg && on) dlg(openDlg, false);
+    if (!on) unask();
     $(id).classList.toggle('hide', !on); $('dlgBack').classList.toggle('hide', !on);
     openDlg = on ? id : null;
   }
+  // purchase confirmation in its own window over the catalog (inside the list it fell below the fold on phones)
+  function ask(m) {
+    $('buyAskImg').src = `assets/ui/${BUY_COVER[m]}.webp`; $('buyAskName').textContent = t('mode_' + m);
+    $('buyAskPrice').textContent = `${fmt(cost(m))} (${MD[m].cost}×)`;
+    $('buyConfirmText').textContent = t('buyFor', { name: t('mode_' + m), price: fmt(cost(m)) });
+    $('buyConfirm').dataset.mode = m; $('buyConfirm').classList.remove('hide'); $('askBack').classList.remove('hide'); $('buyConfirm').focus();
+  }
+  function unask() { $('buyConfirm').classList.add('hide'); $('askBack').classList.add('hide'); }
   function buildBuy() {
     const list = $('buyList'); list.textContent = '';
     BUY_MODES.forEach(m => {
@@ -534,12 +543,11 @@
       b.innerHTML = `<img src="assets/ui/${cover}.webp" alt=""><div><b>${t('mode_' + m)}</b><span>${I18N.socialize(t('desc_' + m))}</span><em>${t('price')}: ${fmt(cost(m))} (${MD[m].cost}×)</em></div>`;
       b.addEventListener('click', () => {
         if (S.balance + 1e-9 < cost(m)) { toast(t('noFunds')); sfx('nofunds'); return; }
-        $('buyConfirmText').textContent = t('buyFor', { name: t('mode_' + m), price: fmt(cost(m)) });
-        $('buyConfirm').classList.remove('hide'); $('buyConfirm').dataset.mode = m;
+        ask(m); sfx('ui_open');
       });
       list.appendChild(b);
     });
-    $('buyConfirm').classList.add('hide');
+    unask();
   }
   function buildAuto() {
     const box = $('autoCounts'); box.textContent = '';
@@ -777,7 +785,8 @@
   click('buyBtn', () => { if (S.busy) return; buildBuy(); dlg('buyDlg', true); sfx('ui_open'); });
   click('autoBtn', () => { if (S.auto > 0) return stopAuto(); if (!S.busy) { dlg('autoDlg', true); sfx('ui_open'); } });
   click('buyYes', () => { const m = $('buyConfirm').dataset.mode; dlg('buyDlg', false); sfx('ui_click'); spin(m); });
-  click('buyNo', () => $('buyConfirm').classList.add('hide'));
+  click('buyNo', () => { unask(); sfx('ui_click'); });
+  $('askBack').addEventListener('click', unask);
   click('autoStart', () => {
     const on = $('autoCounts').querySelector('.chip.on');
     S.autoCfg = { stopBonus: $('autoStopBonus').checked, stopWin: +$('autoStopWin').value, stopLoss: +$('autoStopLoss').value };
@@ -788,6 +797,7 @@
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', ev => { if (ev.detail > 0) b.blur(); dlg(openDlg, false); sfx('ui_click'); }));
   $('dlgBack').addEventListener('click', () => dlg(openDlg, false));
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (!$('buyConfirm').classList.contains('hide')) unask(); else if (openDlg) dlg(openDlg, false); return; }
     if (e.code !== 'Space') return;
     e.preventDefault();
     if (openDlg || S.jur.disabledSpacebar || S.replay) return;

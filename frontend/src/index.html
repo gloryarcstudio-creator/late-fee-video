@@ -67,8 +67,16 @@
 <div id="buyDlg" class="dlg hide" role="dialog">
   <h2 data-t="catalog"></h2>
   <div id="buyList"></div>
-  <div id="buyConfirm" class="hide"><p id="buyConfirmText"></p><button id="buyYes" class="btn" data-t="confirm"></button><button id="buyNo" class="btn" data-t="cancel"></button></div>
   <button class="btn close" data-close aria-label="">✕</button>
+</div>
+<!-- purchase confirmation: its own window over the catalog -->
+<div id="askBack" class="hide"></div>
+<div id="buyConfirm" class="dlg ask hide" role="alertdialog" aria-modal="true" aria-labelledby="buyAskName" aria-describedby="buyConfirmText" tabindex="-1">
+  <img id="buyAskImg" alt="">
+  <h2 id="buyAskName"></h2>
+  <p id="buyAskPrice"></p>
+  <p id="buyConfirmText"></p>
+  <div class="row"><button id="buyYes" class="btn" data-t="confirm"></button><button id="buyNo" class="btn" data-t="cancel"></button></div>
 </div>
 <div id="autoDlg" class="dlg hide" role="dialog">
   <h2 data-t="autoplay"></h2>

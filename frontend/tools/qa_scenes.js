@@ -39,7 +39,15 @@ const closeDlg = p => p.click('#dlgBack', { position: { x: 3, y: 3 } });
     await page.waitForTimeout(1800); await snap('5bigwin');
     await page.mouse.click(vp[0] / 2, vp[1] / 2); await page.mouse.click(vp[0] / 2, vp[1] / 2); await page.waitForTimeout(500);
     await page.click('#buyBtn'); await page.waitForTimeout(200); await snap('6catalog');
-    await page.click('.buy-item[data-mode="double"]'); await snap('7buy_confirm'); await closeDlg(page);
+    await page.click('.buy-item[data-mode="double"]'); await page.waitForTimeout(150); await snap('7buy_confirm');
+    // the confirmation is its own window over the catalog: whole window on screen, both buttons on top and clickable
+    const ask = await page.evaluate(() => { const d = document.getElementById('buyConfirm'), r = d.getBoundingClientRect();
+      const hit = id => { const b = document.getElementById(id).getBoundingClientRect(), e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!(e && e.closest('#' + id)); };
+      return { open: !d.classList.contains('hide'), fits: r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1, yes: hit('buyYes'), no: hit('buyNo') }; });
+    ok(`buy confirmation window ${tag}`, ask.open && ask.fits && ask.yes && ask.no, JSON.stringify(ask));
+    await page.click('#buyNo'); await page.waitForTimeout(100);
+    ok(`cancel returns to the catalog ${tag}`, await page.evaluate(() => document.getElementById('buyConfirm').classList.contains('hide') && !document.getElementById('buyDlg').classList.contains('hide')));
+    await closeDlg(page);
     await page.click('#menuBtn'); await page.waitForTimeout(200); await snap('8rules'); await closeDlg(page);
     await page.click('#autoBtn'); await page.waitForTimeout(200); await snap('9autoplay');
     const dlgFits = await page.evaluate(() => { const d = [...document.querySelectorAll('.dlg, .dialog, [role=dialog]')].find(e => e.offsetWidth); if (!d) return 'none'; const r = d.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; });
