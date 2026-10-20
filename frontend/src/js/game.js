@@ -40,6 +40,7 @@
     });
   }
   const fmt = v => money(v);
+  const icon = (el, id) => { const u = el.querySelector('use'); if (u.getAttribute('href') !== '#' + id) u.setAttribute('href', '#' + id); };
   const winMoney = amt100 => amt100 / 100 * S.bet; // book amounts are ×100 of the base bet
   function toast(msg, ms = 2200) {
     const el = $('toast'); el.textContent = msg; el.classList.remove('hide');
@@ -55,11 +56,49 @@
     if (text && text !== el.textContent) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     el.textContent = text; el.classList.toggle('hide', !text);
   }
+  // the spin's total, big in the middle of the reels: pops in and counts up; winCount(0) clears it, winCountOut() sends it off
+  function winCount(amount, nice) {
+    const el = $('winCount'); clearTimeout(winCount.t); cancelAnimationFrame(winCount.raf);
+    if (!amount) { el.className = 'hide'; return; }
+    const dec = I18N.decimalsFor(amount, I18N.currency()), d = fast() ? 0 : S.turbo || S.auto ? 350 : 700, t0 = performance.now();
+    el.className = 'show' + (nice ? ' nice' : '');
+    const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = money(amount * (1 - Math.pow(1 - k, 3)), dec); if (k < 1) winCount.raf = requestAnimationFrame(step); };
+    step(t0);
+  }
+  function winCountOut() {
+    const el = $('winCount'); if (!el.classList.contains('show')) return;
+    el.className = 'out'; winCount.t = setTimeout(() => { el.className = 'hide'; }, 330);
+  }
+  // sparks out of each winning cell (cell centres in #tv coordinates, the reel box); one burst per spin, at most 12 cells
+  function sparks(wins) {
+    if (fast() || stillMotion()) return;
+    const box = $('sparks'), cell = layout.cell, gap = 6, seen = new Set();
+    for (const w of wins) for (const p of w.positions || []) {
+      const k = p.reel * 10 + p.row; if (seen.has(k) || seen.size >= 12) continue; seen.add(k);
+      const col = Reels.lineColor((w.meta && w.meta.lineIndex) || 1), cx = p.reel * (cell + gap) + cell / 2, cy = (p.row - 1) * cell + cell / 2;
+      for (let i = 0; i < 7; i++) {
+        const a = Math.random() * Math.PI * 2, r = cell * (0.45 + Math.random() * 0.45), sp = document.createElement('i');
+        sp.style.left = cx + 'px'; sp.style.top = cy + 'px'; sp.style.setProperty('--c', col);
+        sp.style.setProperty('--x', (Math.cos(a) * r).toFixed(1) + 'px'); sp.style.setProperty('--y', (Math.sin(a) * r).toFixed(1) + 'px');
+        sp.style.setProperty('--d', (0.55 + Math.random() * 0.35).toFixed(2) + 's');
+        sp.addEventListener('animationend', () => sp.remove()); box.appendChild(sp);
+      }
+    }
+  }
+  // KEY and WILD landing: the symbol slams in with a ring in its colour (rows 1-3 are the visible ones)
+  function landFx(board, r) {
+    if (fast()) return;
+    (board[r] || []).forEach((x, row) => {
+      const n = typeof x === 'string' ? x : x && x.name, c = row >= 1 && row <= 3 && (n === 'S' || n === 'W') && Reels.cellEl(r, row);
+      if (c) { c.classList.remove('landfx'); void c.offsetWidth; c.classList.add('landfx'); }
+    });
+  }
   // WIN field counts up to the new total instead of jumping
   function winField(amount100) {
     const el = $('winVal'), to = amount100 > 0 ? winMoney(amount100) : 0, from = winField.v || 0; winField.v = to;
     cancelAnimationFrame(winField.raf);
-    if (!to) { el.textContent = '—'; return; }
+    el.classList.toggle('hot', to > 0);
+    if (!to) { el.textContent = S.ready ? fmt(0) : '—'; return; }
     const d = fast() || to <= from ? 0 : Math.min(900, 300 + 120 * Math.log2(1 + (to - from) / S.bet)), t0 = performance.now();
     const dec = I18N.decimalsFor(to, I18N.currency());
     const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = k < 1 ? money(from + (to - from) * (1 - Math.pow(1 - k, 3)), dec) : fmt(to); if (k < 1) winField.raf = requestAnimationFrame(step); };
@@ -139,7 +178,7 @@
   function sfx(name) { AUDIO.sfx(CUE[name] || name); }
   const SCENE_MUSIC = () => S.inBonus ? 'mus_bonus' : 'mus_base';
   function stopReel(board, strip) {
-    return r => { const col = (board[r] || []).map(x => (typeof x === 'string' ? x : x.name)); AUDIO.sfx(col[1] === 'S' || col[2] === 'S' || col[3] === 'S' ? 'reel_stop_s' : 'reel_stop'); };
+    return r => { const col = (board[r] || []).map(x => (typeof x === 'string' ? x : x.name)); AUDIO.sfx(col[1] === 'S' || col[2] === 'S' || col[3] === 'S' ? 'reel_stop_s' : 'reel_stop'); landFx(board, r); };
   }
   const AUDIO_CORE = ['ui_click', 'ui_toggle', 'ui_open', 'splash_play', 'spin_start', 'reel_loop', 'reel_stop', 'reel_stop_s', 'win_s', 'win_m', 'line_tick', 'nofunds', 'mus_base'];
 
@@ -159,10 +198,12 @@
     st.style.setProperty('--e', e + 'px'); st.style.setProperty('--lx', Math.ceil(ox / sc) + 1 + 'px'); st.style.setProperty('--ly', Math.ceil(oy / sc) + 1 + 'px');
     // CRT frame geometry: screen hole fractions measured on assets/scene/tv_frame.webp (1432×1158)
     const HX0 = 0.0915, HW = 0.8156, HY0 = 0.0984, HH = 0.7029, AR = 1158 / 1432, gap = 6;
-    const cell = port ? 112 : 120, pad = port ? 14.5 : 30;
+    // portrait: the reels take nearly the whole width (the set's side bezels run off the screen edges); the TV stands right on the
+    // catalog/night-rate row above the bet bar, and the extra height of tall phones goes to the scene above it (Del, the shelves)
+    const cell = port ? 128 : 120, pad = port ? 12 : 30;
     const reelsW = cell * 5 + gap * 4, reelsH = cell * 3, holeW = reelsW + 2 * pad;
     const tvW = holeW / HW, tvH = tvW * AR, holeH = tvH * HH, holeTop = (holeH - reelsH) / 2;
-    const tvLeft = port ? -16 : 221 + e / 2, tvTop = port ? 265 + e * 0.6 : 24;
+    const tvLeft = port ? (720 - tvW) / 2 : 221 + e / 2, tvTop = port ? 942 + e * 0.9 - tvH : 14;
     const tv = $('tv');
     tv.style.left = (tvLeft + HX0 * tvW + pad) + 'px'; tv.style.top = (tvTop + HY0 * tvH + holeTop) + 'px';
     const v = { '--cell': cell + 'px', '--gap': gap + 'px', '--pad': pad + 'px', '--holeTop': holeTop + 'px', '--tvw': tvW + 'px', '--tvh': tvH + 'px',
@@ -183,34 +224,44 @@
     // the tape counter sits on the same counter line, over the counter's lit top edge, so no strip shows between his jeans and the plate
     // (4:3 screens put the line lower than 16:9, the counter used to float on his legs)
     const line = iy + 1122 * bs;
-    $('del').style.top = port ? '' : (line + 72 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line - 3, 650) + 'px';
-    if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); }
+    $('del').style.top = port ? '' : (line + 72 - 514) + 'px'; $('tape').style.top = port ? '' : Math.min(line - 3, 568) + 'px'; // never under the bet bar
+    if (layout.cell !== cell) { layout.cell = cell; Reels.setCell(cell, gap); fitPills(); }
   }
 
+  // long translations (KAPALI, VIDEOLUETTELO…): a pill's text steps down in size until it fits; re-run only when its text or the layout changes
+  function fitPills(force) {
+    for (const id of ['buyBtn', 'anteBtn']) {
+      const el = $(id), key = el.textContent + '|' + layout.cell; if (!el.clientWidth || (!force && el.dataset.fit === key)) continue; el.dataset.fit = key;
+      el.style.fontSize = ''; let f = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.clientWidth + 1 && f > 9) { f -= 0.5; el.style.fontSize = f + 'px'; }
+    }
+  }
   // ---------- UI state ----------
   const cost = mode => S.bet * MD[mode].cost;
   function baseMode() { return S.ante ? 'ante' + S.ante : 'base'; }
   function updateUI() {
     $('balVal').textContent = S.ready ? fmt(S.balance) : '—';
     $('betVal').textContent = S.ready ? fmt(cost(baseMode())) + (S.ante ? ` (×${S.ante})` : '') : '—';
-    $('anteState').textContent = S.ante ? '×' + S.ante : t('anteOff');
+    $('anteState').textContent = S.ante ? '×' + S.ante : t('anteOff'); fitPills();
     $('anteBtn').classList.toggle('on', !!S.ante); $('anteTag').classList.toggle('hide', !S.ante);
     const lock = S.busy || S.auto > 0;
-    ['betMinus', 'betPlus', 'buyBtn', 'anteBtn'].forEach(id => { $(id).disabled = lock || !S.ready; });
+    ['betMinus', 'betPlus', 'betPick', 'buyBtn', 'anteBtn'].forEach(id => { $(id).disabled = lock || !S.ready; });
     $('betMinus').disabled ||= S.betIdx <= 0;
     $('betPlus').disabled ||= S.betIdx >= S.bets.length - 1;
-    $('spinBtn').textContent = S.busy ? (Reels.spinning() && !S.jur.disabledSlamstop ? '■' : '…') : '▶';
-    $('spinBtn').disabled = !S.ready || (S.busy && S.jur.disabledSlamstop);
-    $('autoBtn').textContent = S.auto > 0 ? t('autoLeft', { n: S.auto === Infinity ? '∞' : S.auto }) : '⟳';
+    $('betPick').disabled ||= S.bets.length < 2;
+    // spin: ▶-arrows at rest, ■ while a round plays (a press speeds it up / stops the reels), the spins left during autoplay
+    const sb = $('spinBtn'), state = S.auto > 0 ? 'auto' : S.busy ? (S.jur.disabledSlamstop ? 'busy' : 'stop') : 'idle';
+    sb.dataset.state = state; icon(sb, state === 'stop' ? 'i-stop' : 'i-spin');
+    $('spinN').textContent = S.auto > 0 ? (S.auto === Infinity ? '∞' : S.auto) : '';
+    sb.disabled = !S.ready || (S.busy && S.jur.disabledSlamstop);
     $('autoBtn').classList.toggle('on', S.auto > 0);
     $('turboBtn').classList.toggle('on', S.turbo);
-    $('soundBtn').classList.toggle('off', S.muted);
-    $('soundBtn').textContent = S.muted ? '♪̸' : '♪';
+    $('soundBtn').classList.toggle('off', S.muted); icon($('soundBtn'), S.muted ? 'i-mute' : 'i-sound');
     $('autoBtn').hidden = !!S.jur.disabledAutoplay;
     $('turboBtn').hidden = !!S.jur.disabledTurbo;
     $('buyBtn').hidden = !!S.jur.disabledBuyFeature;
     const st = $('stage'); st.classList.toggle('busy', S.busy); st.classList.toggle('bonus', S.inBonus); LIVE.sync();
-    const aria = { betMinus: t('a_betMinus'), betPlus: t('a_betPlus'), menuBtn: t('rules'), soundBtn: t('a_sound'), turboBtn: t('a_turbo'), autoBtn: t('autoplay'), spinBtn: t('a_spin') };
+    const aria = { betMinus: t('a_betMinus'), betPlus: t('a_betPlus'), betPick: t('bet'), menuBtn: t('rules'), soundBtn: t('a_sound'), turboBtn: t('a_turbo'), autoBtn: t('autoplay'), spinBtn: t('a_spin') };
     for (const k in aria) $(k).setAttribute('aria-label', I18N.socialize(aria[k]));
     document.querySelectorAll('[data-close]').forEach(b => b.setAttribute('aria-label', t('a_close')));
   }
@@ -218,7 +269,7 @@
   // ---------- event player ----------
   const H = {
     async reveal(e) {
-      Reels.clear(); Reels.unfreeze(); popup(''); osd('');
+      Reels.clear(); Reels.unfreeze(); popup(''); osd(''); winCount(0);
       const strip = e.gameType === 'freegame' ? freeStrip() : (BASE_STRIP[S.mode] || 'BR0');
       const antic = (e.anticipation || []).some(a => a > 0);
       del(antic ? 'lean' : 'spin');
@@ -384,9 +435,12 @@
     const st = $('stage'); st.style.setProperty('--tvwin', winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)) / S.bet >= 5 ? 1 : .45); st.classList.add('tvwin');
     const col = w => Reels.lineColor((w.meta && w.meta.lineIndex) || 1);
     const all = () => { Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions, 'hit', col(w))); Reels.lines(wins); };
-    all();
-    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 600 : 800); return; }
-    await wait(900);
+    all(); sparks(wins);
+    // the total counts up in the middle (not on the quick passes inside a feature); 5× the bet and up gets the big size and confetti
+    const tot = winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)), nice = tot / S.bet >= 5;
+    if (!quick) { winCount(tot, nice); if (nice && tot / S.bet < 20) particles(16); }
+    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 600 : 900); winCountOut(); return; }
+    await wait(1200); winCountOut();
     // one line at a time (max 6), then back to all
     if (wins.length > 1) for (const w of wins.slice(0, 6)) {
       if (S.skip) break;
@@ -470,7 +524,7 @@
     mode = mode || baseMode();
     const c = cost(mode);
     if (S.balance + 1e-9 < c) { toast(t('noFunds')); sfx('nofunds'); stopAuto(); return; }
-    S.busy = true; S.skip = false; Reels.clear(); popup(''); sfx('spin_start'); LIVE.burst(); $('stage').classList.remove('tvwin');
+    S.busy = true; S.skip = false; Reels.clear(); popup(''); winCount(0); sfx('spin_start'); LIVE.burst(); $('stage').classList.remove('tvwin');
     const t0 = performance.now();
     const before = S.balance; S.balance -= c; updateUI();
     let res;
@@ -549,6 +603,15 @@
     });
     unask();
   }
+  // bet picker: every bet level in one window (the − / + steppers stay for one-step changes)
+  function buildBets() {
+    const box = $('betList'); box.textContent = '';
+    S.bets.forEach((v, i) => {
+      const b = document.createElement('button'); b.className = 'btn chip' + (i === S.betIdx ? ' on' : ''); b.textContent = fmt(v * MD[baseMode()].cost);
+      b.addEventListener('click', () => { S.betIdx = i; S.bet = S.bets[i]; sfx('click'); updateUI(); buildRules(); dlg('betDlg', false); });
+      box.appendChild(b);
+    });
+  }
   function buildAuto() {
     const box = $('autoCounts'); box.textContent = '';
     [10, 25, 50, 100, 500].forEach((n, i) => {
@@ -564,9 +627,10 @@
     const rows = modes.map(m => `<tr><td>${t('mode_' + m)}</td><td>${x(MD[m].cost)}</td><td>${MD[m].rtp.toFixed(2)}%</td><td>${x(MD[m].maxWin)}</td></tr>`).join('');
     const pays = Object.entries(LINE_PAYS).map(([s, p]) => `<tr><td><span class="mini s-${s}">${Reels.LABEL[s]}</span></td>${p.map(v => `<td>${+(v / 20).toFixed(2)}×</td>`).join('')}</tr>`).join('');
     const lines = Reels.PAYLINES.slice(1).map((pl, i) => `<div class="pl-mini"><b>${i + 1}</b>${[0, 1, 2].map(row => `<div>${pl.map(r => `<i class="${r === row ? 'on' : ''}"></i>`).join('')}</div>`).join('')}</div>`).join('');
-    const btn = [['▶', 'b_spin'], ['−&nbsp;/&nbsp;+', 'b_bet'], [t('ante'), 'b_ante'], J.disabledBuyFeature ? null : [t('catalog'), 'b_catalog'],
-      J.disabledAutoplay ? null : ['⟳', 'b_auto'], J.disabledTurbo ? null : ['»', 'b_turbo'], ['♪', 'b_sound'], ['☰', 'b_menu'], ['✕', 'b_close']]
-      .filter(Boolean).map(([k, v]) => `<li><b>${k}</b> ${T(v)}</li>`).join('');
+    const ic = id => `<svg class="ic" data-ic="${id}"><use href="#${id}"/></svg>`;
+    const btn = [[ic('i-spin'), 'b_spin'], [`${ic('i-minus')} ${ic('i-plus')}`, 'b_bet', 'b_betPick'], [t('ante'), 'b_ante'], J.disabledBuyFeature ? null : [t('catalog'), 'b_catalog'],
+      J.disabledAutoplay ? null : [ic('i-auto'), 'b_auto'], J.disabledTurbo ? null : [ic('i-turbo'), 'b_turbo'], [ic('i-sound'), 'b_sound'], [ic('i-menu'), 'b_menu'], ['✕', 'b_close']]
+      .filter(Boolean).map(([k, v, more]) => `<li><b>${k}</b> ${T(v)}${more ? ' ' + T(more) : ''}</li>`).join('');
     const disc = I18N.lang() !== 'en' && t('r_disc') !== 'r_disc' ? `<p>${t('r_disc')}</p>` : '';
     const html = `
       <h2>${t('rules')}</h2>
@@ -644,10 +708,13 @@
   const SC0 = PORT0 ? Math.min(innerWidth / 720, innerHeight / 1280) : Math.min(innerWidth / 1280, innerHeight / 720);
   const DEL_M = Math.max(innerWidth, innerHeight) <= 960 || (PORT0 ? 430 : 520) * SC0 * (devicePixelRatio || 1) <= 460;
   const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`)
-    .concat(['assets/scene/tv_frame.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}f/idle_0.webp${DEL.V}`, 'assets/promo/logo_emblem.webp'],
-      ['ui_spin', 'ui_round', 'ui_field', 'ui_wide', 'ui_panel', 'ui_counter', 'ui_side', 'ui_tag'].map(k => `assets/ui/${k}.webp`));
+    .concat(['assets/scene/tv_frame.webp', 'assets/scene/screen_crt.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}f/idle_0.webp${DEL.V}`, 'assets/promo/logo_emblem.webp']);
   // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
-  function lateArt() { setTimeout(() => { $('stage').classList.add('late-art'); DEL.preloadAll(); symIdle(); LIVE.start(); bwScenes(); }, 600); }
+  // v31: in steps 0.7 s apart, each one only while no round plays, so the first spins never share a frame with a decode burst
+  function lateArt() {
+    const steps = [() => { $('stage').classList.add('late-art'); bwScenes(); }, () => LIVE.start(), () => DEL.preloadAll(), symIdle];
+    (function next() { if (steps.length) setTimeout(() => { if (!S.busy) steps.shift()(); next(); }, 700); })();
+  }
   // living scene (batch 06): looped background videos, the TV-frame loop and pointer parallax. Desktop only; phones, portrait,
   // reduced motion and the QA fast mode keep the stills (no <video> is created there, so nothing downloads).
   const LIVE = (() => {
@@ -723,7 +790,7 @@
     I18N.setLang(P.lang); I18N.setCurrency(P.currency || 'USD');
     I18N.setSocial(P.social || I18N.isSocialCurrency(P.currency));
     I18N.apply(); buildAuto(); document.documentElement.lang = I18N.lang();
-    ['buyDlg', 'autoDlg', 'rulesDlg'].forEach(id => $(id).setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr'));
+    ['buyDlg', 'betDlg', 'autoDlg', 'rulesDlg'].forEach(id => $(id).setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr'));
     Reels.init($('reels'), $('lines'));
     DEL.init({ mobile: DEL_M });
     layout(); window.addEventListener('resize', layout);
@@ -753,7 +820,7 @@
       S.pendingRound = auth.round;
     }
     S.bet = S.bets[S.betIdx];
-    S.ready = true; buildRules(); updateUI();
+    S.ready = true; buildRules(); updateUI(); winField(0); document.fonts.ready.then(() => fitPills(true));
     if (P.dev && !RGS_MODE) devPanel();
     $('splashBtn').disabled = false; $('splashBtn').textContent = t('play');
     $('splashBtn').onclick = async () => {
@@ -777,6 +844,7 @@
   }
   click('spinBtn', () => { if (S.auto > 0 && !S.busy) return stopAuto(); spin(); });
   click('betMinus', () => { if (S.betIdx > 0) { S.betIdx--; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
+  click('betPick', () => { if (S.busy || S.auto > 0) return; buildBets(); dlg('betDlg', true); sfx('ui_open'); });
   click('betPlus', () => { if (S.betIdx < S.bets.length - 1) { S.betIdx++; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
   click('anteBtn', () => { S.ante = S.ante === 0 ? 2 : S.ante === 2 ? 4 : 0; sfx('ui_toggle'); updateUI(); });
   click('turboBtn', () => { S.turbo = !S.turbo; sfx('ui_toggle'); updateUI(); });

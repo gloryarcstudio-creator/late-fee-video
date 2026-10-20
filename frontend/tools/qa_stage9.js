@@ -197,8 +197,10 @@ async function rulesCheck() {
   pass('29', 'paytable, wild/scatter, free spins, retrigger, paylines', pay && /up to 50 free spins/.test(t), `paylines drawn ${await p.$$eval('.pl-mini', e => e.length)}; retrigger text ${/2 KEY add 3/.test(t)}`);
   const DISC = 'Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and © 2026 Engine.';
   pass('185', 'disclaimer verbatim', t.includes(DISC), t.includes(DISC) ? 'exact match' : 'not found');
-  const btns = ['▶', '− / +', 'NIGHT RATE', 'VIDEO CATALOG', '⟳', '»', '♪', '☰', '✕'].filter(b => !t.includes(b));
-  pass('235', 'every on-screen button explained', btns.length === 0 && /space bar/.test(t), btns.length ? 'missing ' + btns.join(' ') : 'spin, bet −/+, ante, catalog, autoplay, turbo, sound, menu, close, space bar, tap-to-skip');
+  // v31: the rules show the same SVG icons as the bar (data-ic), the text buttons by name
+  const ics = await p.$$eval('#rulesBody [data-ic]', es => es.map(e => e.dataset.ic));
+  const btns = ['NIGHT RATE', 'VIDEO CATALOG', '✕'].filter(b => !t.includes(b)).concat(['i-spin', 'i-minus', 'i-plus', 'i-auto', 'i-turbo', 'i-sound', 'i-menu'].filter(i => !ics.includes(i)));
+  pass('235', 'every on-screen button explained', btns.length === 0 && /space bar/.test(t) && /all bet levels/.test(t), btns.length ? 'missing ' + btns.join(' ') : 'spin, bet −/+ and the bet picker, ante, catalog, autoplay, turbo, sound, menu, close (same icons as on screen), space bar, tap-to-skip');
   await p.close();
   // jurisdiction flags
   await ctl(C('jur=disabledTurbo,disabledAutoplay,disabledBuyFeature,disabledSpacebar'));
@@ -206,8 +208,8 @@ async function rulesCheck() {
   const hid = await q.evaluate(() => ['turboBtn', 'autoBtn', 'buyBtn'].map(id => document.getElementById(id).hidden || getComputedStyle(document.getElementById(id)).display === 'none'));
   await q.keyboard.press('Space'); await q.waitForTimeout(300);
   const sp = plays(await bodies()).length;
-  await q.click('#menuBtn'); const t2 = await q.$eval('#rulesBody', e => e.innerText);
-  const leak = ['⟳', '»', 'VIDEO CATALOG', 'space bar', "Director's Cut"].filter(x => t2.includes(x));
+  await q.click('#menuBtn'); const t2 = await q.$eval('#rulesBody', e => e.innerText + e.innerHTML);
+  const leak = ['data-ic="i-auto"', 'data-ic="i-turbo"', 'VIDEO CATALOG', 'space bar', "Director's Cut"].filter(x => t2.includes(x));
   pass('jur', 'jurisdiction flags: turbo/autoplay/buy/space disabled and removed from rules', hid.every(Boolean) && sp === 0 && leak.length === 0, `hidden ${hid}; Space plays ${sp}; rules leftovers ${leak.join(',') || 'none'}`);
   await q.close();
 }

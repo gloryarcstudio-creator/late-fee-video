@@ -9,6 +9,21 @@
 <link rel="stylesheet" href="css/del.css">
 </head>
 <body>
+<!-- one icon set for every control (24×24, stroked in the button colour) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M3.5 9.5H7l4.5-4v13L7 14.5H3.5z" fill="currentColor" stroke-width="1.6"/><path d="M15 9a4.2 4.2 0 0 1 0 6M17.8 6.3a8 8 0 0 1 0 11.4"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M3.5 9.5H7l4.5-4v13L7 14.5H3.5z" fill="currentColor" stroke-width="1.6"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></symbol>
+  <symbol id="i-turbo" viewBox="0 0 24 24"><path d="M13.5 2.5 5 13.5h6l-1.5 8 8.5-11h-6z" fill="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.8 3.8V8h-4.2"/><path d="M10.2 9.2v5.6l4.6-2.8z" fill="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-spin" viewBox="0 0 24 24"><path d="M5 11a7.2 7.2 0 0 1 12.6-4.1"/><path d="M18.4 3.6v3.9h-3.9"/><path d="M19 13a7.2 7.2 0 0 1-12.6 4.1"/><path d="M5.6 20.4v-3.9h3.9"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-tape" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><circle cx="8.3" cy="11.3" r="2"/><circle cx="15.7" cy="11.3" r="2"/><path d="M8.3 13.3h7.4M6.5 18.5l1.6-2.6h7.8l1.6 2.6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z" fill="currentColor" stroke-width="1.4"/></symbol>
+</svg>
 <div id="stage">
   <div id="bg"><div class="bgl"></div><div class="bgb"></div></div>
 
@@ -27,6 +42,8 @@
     <div id="rec" class="hide">● REC</div>
     <div id="tracking" class="hide"></div>
     <div id="spinWin" class="hide"></div>
+    <div id="sparks"></div>
+    <div id="winCount" class="hide"></div>
   </div>
 
   <div id="side">
@@ -36,22 +53,24 @@
     <div id="tapeLog" class="hide"></div>
   </div>
 
-  <button id="buyBtn" class="btn" data-t="catalog"></button>
-  <button id="anteBtn" class="btn toggle"><span data-t="ante"></span> <b id="anteState">OFF</b></button>
+  <button id="buyBtn" class="pill"><svg class="ic"><use href="#i-tape"/></svg><span data-t="catalog"></span></button>
+  <button id="anteBtn" class="pill toggle"><svg class="ic"><use href="#i-moon"/></svg><span data-t="ante"></span> <b id="anteState">OFF</b></button>
 
+  <!-- bet bar: one deck across the bottom (it bleeds into the letterbox); portrait splits it into a value row and a control row -->
+  <div id="deck"></div>
   <div id="hud">
+    <button id="menuBtn" class="ib" aria-label=""><svg class="ic"><use href="#i-menu"/></svg></button>
+    <button id="soundBtn" class="ib" aria-label=""><svg class="ic"><use href="#i-sound"/></svg></button>
     <div class="field" id="balField"><span class="lbl" data-t="balance"></span><b id="balVal">—</b></div>
-    <div class="field" id="betField">
-      <button id="betMinus" class="btn round" aria-label="">−</button>
-      <div><span class="lbl" data-t="bet"></span><b id="betVal">—</b></div><span id="anteTag" class="hide"></span>
-      <button id="betPlus" class="btn round" aria-label="">+</button>
+    <div class="betGrp">
+      <button id="betMinus" class="ib step" aria-label=""><svg class="ic"><use href="#i-minus"/></svg></button>
+      <div class="field" id="betField"><button id="betPick" class="pick" aria-haspopup="dialog" aria-label=""><span class="lbl"><span data-t="bet"></span><svg class="ic chev"><use href="#i-chev"/></svg></span><b id="betVal">—</b></button><span id="anteTag" class="hide"></span></div>
+      <button id="betPlus" class="ib step" aria-label=""><svg class="ic"><use href="#i-plus"/></svg></button>
     </div>
-    <div class="field" id="winField"><span class="lbl" data-t="win"></span><b id="winVal">—</b></div>
-    <button id="menuBtn" class="btn round" aria-label="">☰</button>
-    <button id="soundBtn" class="btn round" aria-label="">♪</button>
-    <button id="turboBtn" class="btn round" aria-label="">»</button>
-    <button id="autoBtn" class="btn round" aria-label="">⟳</button>
-    <button id="spinBtn" class="btn" aria-label="">▶</button>
+    <div class="field" id="winField"><span class="lbl" data-t="win"></span><b id="winVal">0.00</b></div>
+    <button id="turboBtn" class="ib" aria-label=""><svg class="ic"><use href="#i-turbo"/></svg></button>
+    <button id="spinBtn" aria-label="" data-state="idle"><svg class="ic"><use href="#i-spin"/></svg><span id="spinN"></span></button>
+    <button id="autoBtn" class="ib" aria-label=""><svg class="ic"><use href="#i-auto"/></svg></button>
   </div>
 
   <div id="fx"></div>
@@ -77,6 +96,11 @@
   <p id="buyAskPrice"></p>
   <p id="buyConfirmText"></p>
   <div class="row"><button id="buyYes" class="btn" data-t="confirm"></button><button id="buyNo" class="btn" data-t="cancel"></button></div>
+</div>
+<div id="betDlg" class="dlg hide" role="dialog">
+  <h2 data-t="bet"></h2>
+  <div id="betList"></div>
+  <button class="btn close" data-close aria-label="">✕</button>
 </div>
 <div id="autoDlg" class="dlg hide" role="dialog">
   <h2 data-t="autoplay"></h2>

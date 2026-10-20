@@ -89,7 +89,8 @@ async function states(browser) {
   await page.mouse.click(640, 360); await page.mouse.click(640, 360); await page.waitForTimeout(300);
   // dialogs
   await page.click('#buyBtn'); await page.click('.buy-item[data-mode="double"]'); await snap('buy_confirm');
-  await page.click('#dlgBack', { position: { x: 5, y: 5 } });
+  await page.click('#buyNo'); await page.click('#dlgBack', { position: { x: 5, y: 5 } }); // v30: the confirmation is its own window over the catalog
+  await page.click('#betPick'); await snap('bet_picker'); await page.click('#dlgBack', { position: { x: 5, y: 5 } });
   await page.click('#menuBtn'); await snap('rules'); await page.click('#dlgBack', { position: { x: 5, y: 5 } });
   await page.click('#autoBtn'); await snap('autoplay'); await page.click('#dlgBack', { position: { x: 5, y: 5 } });
   // insufficient balance

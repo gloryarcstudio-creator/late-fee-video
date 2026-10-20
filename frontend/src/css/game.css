@@ -8,10 +8,15 @@
 @font-face { font-family: 'LFV LCD'; src: url(../assets/fonts/vt323-latin-400-normal.woff2) format('woff2'); font-display: block; unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 @font-face { font-family: 'LFV LCD'; src: url(../assets/fonts/vt323-latin-ext-400-normal.woff2) format('woff2'); font-display: block; unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 @font-face { font-family: 'LFV LCD'; src: url(../assets/fonts/vt323-vietnamese-400-normal.woff2) format('woff2'); font-display: block; unicode-range: U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9,U+20AB; }
+/* bet bar and controls (v31): Russo One — square-cut and easy to read at small sizes; other scripts fall back to the system font */
+@font-face { font-family: 'LFV UI'; src: url(../assets/fonts/russo-one-latin-400-normal.woff2) format('woff2'); font-display: swap; unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'LFV UI'; src: url(../assets/fonts/russo-one-latin-ext-400-normal.woff2) format('woff2'); font-display: swap; unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'LFV UI'; src: url(../assets/fonts/russo-one-cyrillic-400-normal.woff2) format('woff2'); font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
 :root { --cell: 136px; --gap: 6px; --bg: #141416; --panel: #26262a; --line: #4a4a52; --txt: #e6e6e6; --dim: #8a8a92;
   --wild: #d8b44a; color-scheme: dark; --scatter: #4ac6d8; --rew: #d84a9e; --hit: #fff; --osd: #e8f0ff;
   --f-title: 'LFV Title', 'Arial Black', Impact, system-ui, sans-serif; --f-lcd: 'LFV LCD', ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace;
-  --f-text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --gold: #ffd34a; --neon-c: #3de0ff; --neon-m: #ff4fc3; }
+  --f-text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --gold: #ffd34a; --neon-c: #3de0ff; --neon-m: #ff4fc3;
+  --f-ui: 'LFV UI', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --ink: #f2efff; --ink2: #aaa1d8; --edge: rgba(190, 175, 255, .24); --deckH: 86px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body { position: fixed; inset: 0; touch-action: manipulation; background: #0b0b0c; color: var(--txt);
@@ -45,15 +50,17 @@ button { font: inherit; color: inherit; }
 
 
 
-#tape { position: absolute; z-index: 5; border: 11px solid transparent; border-image: url(../assets/ui/ui_counter.webp) 60 fill stretch; display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 30px; letter-spacing: 3px; color: #b9f5c8; text-shadow: 0 0 6px #3f7; }
+#tape { position: absolute; z-index: 5; border-radius: 14px; background: linear-gradient(180deg, #0b1510, #040806); border: 1.5px solid rgba(120, 255, 170, .35);
+  box-shadow: inset 0 0 16px rgba(60, 255, 120, .14), 0 0 0 4px rgba(16, 11, 34, .92), 0 0 0 5.5px var(--edge), 0 6px 14px rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 30px; letter-spacing: 3px; color: #b9f5c8; text-shadow: 0 0 6px #3f7; }
 #tape .lbl { font-size: 14px; color: var(--dim); letter-spacing: 2px; }
 
 /* TV: #tv is the reel box; #screen (blue tube) and #tvFrame (keyed CRT art) are positioned around it from vars set in layout() */
 #tv { position: absolute; width: calc(var(--cell) * 5 + var(--gap) * 4); height: calc(var(--cell) * 3); z-index: 1; }
 #screen { position: absolute; left: calc(-1 * var(--pad)); top: calc(-1 * var(--holeTop)); width: calc(100% + 2 * var(--pad)); height: calc(100% + 2 * var(--holeTop));
-  background: #16289c url(../assets/scene/screen_base.webp) center / 100% 100% no-repeat; border-radius: 5% / 7%; overflow: hidden; z-index: 0; }
-/* batch 09 tube art (scanlines, glass, tracking noise at the bottom); the bonus tube fades in over it, fetched after PLAY */
-#screen::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url(../assets/scene/screen_bonus.webp) center / 100% 100% no-repeat; opacity: 0; transition: opacity .6s; }
+  background: #05070f url(../assets/scene/screen_crt.webp) center / 100% 100% no-repeat; border-radius: 5% / 7%; overflow: hidden; z-index: 0; }
+/* batch 09 tube art (scanlines, glass, tracking noise at the bottom) regraded in v31 from VCR blue to a dark CRT glass
+   (tools/art/screen_dark.py) so the symbols glow on it; the dark purple bonus tube fades in over it, fetched after PLAY */
+#screen::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url(../assets/scene/screen_crt_bonus.webp) center / 100% 100% no-repeat; opacity: 0; transition: opacity .6s; }
 #stage.bonus #screen::before { opacity: 1; }
 #stage:not(.late-art):not(.bonus) #screen::before { background-image: none; }
 #screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -81,7 +88,8 @@ button { font: inherit; color: inherit; }
 @keyframes burst { from { opacity: .9; background-position: 0 0; } to { opacity: 0; background-position: 0 23px; } }
 @media (prefers-reduced-motion: reduce) { #tvFrame .st.bonus { animation: none; } #tv.burst::before { display: none; } }
 #reels { position: relative; display: flex; gap: var(--gap); z-index: 1; }
-.reel { position: relative; width: var(--cell); height: calc(var(--cell) * 3); clip-path: inset(-18px -26px); }
+.reel { position: relative; width: var(--cell); height: calc(var(--cell) * 3); clip-path: inset(-18px -26px); border-radius: 10px;
+  background: linear-gradient(180deg, rgba(120, 140, 255, .03), rgba(120, 140, 255, .075) 50%, rgba(120, 140, 255, .03)); }
 /* at rest the reel lets a winning symbol grow past its edges; the hidden padding rows stay invisible, a spinning reel clips tight */
 .reel.spin { clip-path: inset(0); }
 .reel:not(.spin) .sym.pad { visibility: hidden; }
@@ -113,18 +121,29 @@ button { font: inherit; color: inherit; }
 /* rules-screen chips keep text */
 .mini.s-L1, .mini.s-L2, .mini.s-L3, .mini.s-L4 { color: #9a9aa2; } .mini.s-W { color: var(--wild); } .mini.s-S { color: var(--scatter); } .mini.s-R { color: var(--rew); }
 #reels.dimmed .sym:not(.hit):not(.hit-s) { opacity: .28; transform: scale(.9); }
+/* KEY and WILD landing (v31): the symbol slams in bright and a ring in its colour flashes out */
+.sym.s-S { --lf: var(--neon-c); } .sym.s-W { --lf: var(--gold); }
+.sym.landfx { z-index: 2; animation: symLand .5s cubic-bezier(.2, 1.6, .4, 1); }
+.sym.landfx::after { content: ""; position: absolute; inset: 4px; border-radius: 16px; pointer-events: none; box-shadow: 0 0 0 3px var(--lf), 0 0 28px 8px var(--lf); animation: landRing .65s ease-out both; }
+@keyframes symLand { 0% { transform: scale(1.32); filter: brightness(1.9); } 100% { transform: none; filter: none; } }
+@keyframes landRing { 0% { opacity: 1; transform: scale(.85); } 100% { opacity: 0; transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { .sym.landfx, .sym.landfx::after { animation: none; } .sym.landfx::after { display: none; } }
 /* a winning symbol: punches up, keeps a soft breathing glow in its line colour (--lc) and a neon frame; its idle clip plays at full pace */
 .sym.hit, .sym.hit-s { z-index: 2; animation: symWin .9s cubic-bezier(.25, 1.4, .5, 1) both, symBreath 1.4s .9s ease-in-out infinite alternate; }
 .sym.hit-s { --lc: var(--neon-c); }
 .sym.hit, .sym.hit-s { background-image: var(--art), radial-gradient(closest-side, color-mix(in srgb, var(--lc, var(--gold)) 65%, transparent), transparent);
   background-size: 88% 88%, 104% 104%; }
 .sym.hit::after, .sym.hit-s::after { content: ""; position: absolute; inset: 4px; border-radius: 16px; pointer-events: none;
-  box-shadow: 0 0 0 2px var(--lc, var(--gold)), 0 0 14px 2px var(--lc, var(--gold)), inset 0 0 18px color-mix(in srgb, var(--lc, var(--gold)) 45%, transparent); animation: frameIn .4s ease-out both, framePulse 1.4s .4s ease-in-out infinite alternate; }
-@keyframes framePulse { to { box-shadow: 0 0 0 2px #fff, 0 0 22px 5px var(--lc, var(--gold)), inset 0 0 24px color-mix(in srgb, var(--lc, var(--gold)) 60%, transparent); } }
-@keyframes symWin { 0% { transform: scale(1); } 28% { transform: scale(1.2); } 52% { transform: scale(.96); } 74% { transform: scale(1.08); } 100% { transform: scale(1.05); } }
-@keyframes symBreath { from { transform: scale(1.05); } to { transform: scale(1.1); } }
+  box-shadow: 0 0 0 3px var(--lc, var(--gold)), 0 0 20px 4px var(--lc, var(--gold)), inset 0 0 22px color-mix(in srgb, var(--lc, var(--gold)) 50%, transparent); animation: frameIn .4s ease-out both, framePulse 1.4s .4s ease-in-out infinite alternate; }
+@keyframes framePulse { to { box-shadow: 0 0 0 3px #fff, 0 0 30px 8px var(--lc, var(--gold)), inset 0 0 28px color-mix(in srgb, var(--lc, var(--gold)) 65%, transparent); } }
+@keyframes symWin { 0% { transform: scale(1); } 25% { transform: scale(1.27) rotate(-3deg); } 45% { transform: scale(.95) rotate(2deg); } 66% { transform: scale(1.11) rotate(-1deg); } 100% { transform: scale(1.06); } }
+@keyframes symBreath { from { transform: scale(1.06); } to { transform: scale(1.12); } }
+/* each time a symbol lights up, a ring in its line colour bursts out of the cell */
+.sym.hit::before, .sym.hit-s::before { content: ""; position: absolute; inset: 2px; border-radius: 20px; pointer-events: none; border: 3px solid var(--lc, var(--gold));
+  box-shadow: 0 0 16px var(--lc, var(--gold)); animation: ringOut .7s ease-out both; }
+@keyframes ringOut { 0% { transform: scale(.75); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
 @keyframes frameIn { 0% { opacity: 0; transform: scale(1.25); } 100% { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .sym.hit, .sym.hit-s, .sym.hit::after, .sym.hit-s::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sym.hit, .sym.hit-s, .sym.hit::after, .sym.hit-s::after { animation: none; } .sym.hit::before, .sym.hit-s::before { display: none; } }
 .reel.antic, .reel.frozen { border-radius: 10px; }
 .reel.antic { box-shadow: 0 0 0 2px var(--scatter), 0 0 14px 3px rgba(74, 198, 216, .5); animation: anticGlow .5s ease-in-out infinite alternate; }
 @keyframes anticGlow { from { box-shadow: 0 0 0 2px var(--scatter), 0 0 10px 2px rgba(74, 198, 216, .4); } to { box-shadow: 0 0 0 3px #bff6ff, 0 0 30px 8px rgba(74, 198, 216, .75); } }
@@ -135,7 +154,7 @@ button { font: inherit; color: inherit; }
 #lines { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
 /* paylines: a wide translucent glow, the coloured line and a white core, drawn on from reel 1, and a spark running along it */
 #lines polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: plDraw .5s ease-out forwards; }
-#lines .pg { stroke-width: 18; opacity: .28; } #lines .pl { stroke-width: 6; } #lines .pc { stroke: #fff; stroke-width: 2; opacity: .85; }
+#lines .pg { stroke-width: 22; opacity: .3; } #lines .pl { stroke-width: 7; } #lines .pc { stroke: #fff; stroke-width: 2.5; opacity: .9; }
 #lines circle { fill: #fff; }
 @keyframes plDraw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { #lines polyline { animation: none; stroke-dashoffset: 0; } #lines circle { display: none; } }
@@ -148,13 +167,33 @@ button { font: inherit; color: inherit; }
   background: repeating-linear-gradient(0deg, rgba(255,255,255,0) 0 14px, rgba(255,255,255,.18) 14px 18px); animation: track .25s linear infinite; }
 @keyframes track { from { background-position: 0 0; } to { background-position: 0 36px; } }
 #spinWin { position: absolute; left: 50%; bottom: calc(6px - var(--holeTop)); transform: translateX(-50%); z-index: 4; pointer-events: none; white-space: nowrap;
-  padding: 2px 22px 4px; font-size: 38px; letter-spacing: 2px; color: #fff; border-radius: 10px; background: linear-gradient(180deg, #161a33, #06070f);
-  border: 2px solid var(--lc, var(--gold)); box-shadow: 0 0 0 1px #000, 0 0 18px color-mix(in srgb, var(--lc, var(--gold)) 70%, transparent), inset 0 0 14px rgba(0, 0, 0, .8);
-  text-shadow: 0 0 8px var(--lc, var(--gold)), 0 0 2px #fff; }
+  padding: 4px 26px 6px; font-family: var(--f-ui); font-size-adjust: none; font-size: 32px; letter-spacing: 1px; color: #fff; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(34, 22, 70, .96), rgba(8, 5, 18, .97)); border: 2px solid var(--lc, var(--gold));
+  box-shadow: 0 0 0 1px #000, 0 0 20px color-mix(in srgb, var(--lc, var(--gold)) 70%, transparent), inset 0 0 14px rgba(0, 0, 0, .8);
+  text-shadow: 0 0 10px var(--lc, var(--gold)); }
 #spinWin.pop { animation: winPop .38s cubic-bezier(.25, 1.6, .5, 1); }
+/* the spin's total counts up big in the middle of the reels while all its lines show, then flies off before the line-by-line pass */
+#winCount { position: absolute; left: 50%; top: 50%; z-index: 4; pointer-events: none; white-space: nowrap; transform: translate(-50%, -50%);
+  font-family: var(--f-title); font-size-adjust: none; font-size: 80px; letter-spacing: 2px; color: #ffe27a; -webkit-text-stroke: 4px #1a0828; paint-order: stroke fill;
+  text-shadow: 0 3px 0 #c2620e, 0 6px 0 #6b2a05, 0 10px 18px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 176, 58, .9), 0 0 70px rgba(255, 79, 195, .55); }
+#winCount::before { content: ""; position: absolute; left: 50%; top: 50%; width: 150%; height: 190%; transform: translate(-50%, -50%); z-index: -1;
+  background: radial-gradient(closest-side, rgba(6, 3, 16, .72), rgba(6, 3, 16, .4) 60%, transparent); }
+#winCount.nice { font-size: 104px; }
+#winCount.show { animation: wcIn .45s cubic-bezier(.2, 1.6, .4, 1) both; }
+#winCount.out { animation: wcOut .32s ease-in both; }
+@keyframes wcIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes wcOut { to { transform: translate(-50%, -50%) scale(1.35); opacity: 0; } }
+#stage.port #winCount { font-size: 72px; } #stage.port #winCount.nice { font-size: 92px; }
+/* sparks thrown out of every winning cell when a spin's wins first light up */
+#sparks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
+#sparks i { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 3px var(--c);
+  animation: spark var(--d) cubic-bezier(.15, .7, .3, 1) forwards; }
+@keyframes spark { 0% { transform: translate(0, 0) scale(1.2); opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #sparks { display: none; } #winCount.show, #winCount.out { animation: none; } }
 @keyframes winPop { 0% { transform: translateX(-50%) scale(.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-#side > div { position: absolute; z-index: 5; border: 14px solid transparent; border-image: url(../assets/ui/ui_side.webp) 80 fill stretch; padding: 0 6px; text-align: center; }
+#side > div { position: absolute; z-index: 5; padding: 4px 10px 8px; text-align: center; border-radius: 16px; background: linear-gradient(180deg, rgba(36, 22, 74, .92), rgba(10, 7, 24, .95));
+  border: 1.5px solid rgba(255, 79, 195, .6); box-shadow: 0 0 18px rgba(255, 79, 195, .3), inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px rgba(0, 0, 0, .5); }
 #side .lbl, .field .lbl { display: block; font-size: 13px; color: var(--dim); letter-spacing: 2px; }
 #side .lbl { font-family: var(--f-title); font-size-adjust: none; font-size: 12px; letter-spacing: 1.5px; color: #9fe9ff; text-shadow: 0 0 6px rgba(61, 224, 255, .6); margin-top: 4px; }
 #side b { font-weight: 400; }
@@ -181,32 +220,77 @@ button { font: inherit; color: inherit; }
 @keyframes recIn { 0% { transform: translateX(30px) rotate(4deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
 #stage.port #tapeLog .rec { margin: 6px 0; font-size: 18px; }
 
-.btn { background: #34343a; border: 2px solid #5a5a62; color: var(--txt); cursor: pointer; padding: 8px 14px; font-size: 18px; letter-spacing: 1px; transition: transform .08s; }
+/* ---------- controls (v31): one glass-and-neon set for the bet bar, the side buttons, counters and dialogs ---------- */
+.btn { font-family: var(--f-ui); font-size-adjust: none; background: linear-gradient(180deg, #2c2352, #161130); border: 1.5px solid var(--edge); border-radius: 12px; color: var(--ink);
+  cursor: pointer; padding: 9px 16px; font-size: 16px; letter-spacing: .5px; transition: transform .08s, border-color .15s, box-shadow .15s; }
+.btn:hover:not(:disabled), .btn:focus-visible { border-color: rgba(61, 224, 255, .75); outline: none; }
 .btn:active:not(:disabled) { transform: scale(.95); }
 .btn:disabled { opacity: .35; cursor: default; }
-.btn.round { width: 58px; height: 58px; border-radius: 50%; padding: 0; font-size: 26px; border: 0; background: url(../assets/ui/ui_round.webp) center / 100% 100% no-repeat; color: #ddd; text-shadow: 0 1px 2px #000;
-  display: inline-flex; align-items: center; justify-content: center; }
-/* the button faces sit above the art's box centre (round: 4.6 % of the height, spin: 2.2 %), so the glyph is nudged up by a padding-bottom
-   of twice that; --gy is the per-size value */
-.btn.round, #spinBtn { --gy: 5.3px; padding-bottom: var(--gy); }
-#spinBtn { --gy: 11.5px; --gx: 4px; }
-/* per-glyph optical nudges, measured on the rendered ink */
-#soundBtn { --gy: 1.1px; } #menuBtn, #autoBtn { --gy: 3.1px; }
-.btn.on { border-color: var(--wild); color: var(--wild); box-shadow: 0 0 0 2px var(--wild), 0 0 14px var(--wild); }
-.btn.round.on { border-radius: 50%; }
-.btn.off { color: var(--dim); }
-#spinBtn { width: 124px; height: 124px; border-radius: 50%; font-size: 48px; border: 0; background: url(../assets/ui/ui_spin.webp) center / 100% 100% no-repeat; color: #2a2a2e; text-shadow: 0 1px 0 #fff8; display: inline-flex; align-items: center; justify-content: center; padding: 0 0 var(--gy) var(--gx, 0px); }
-#buyBtn, #anteBtn { position: absolute; z-index: 5; width: 230px; height: 64px; font-size: 17px; font-family: var(--f-title); font-size-adjust: none; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 79, 195, .7); background: none; border: 10px solid transparent; border-image: url(../assets/ui/ui_wide.webp) 60 fill stretch; padding: 5px 14px 11px; } /* the neon frame sits above the plate's centre: text raised 3px */
-#anteBtn.on { color: var(--scatter); box-shadow: none; }
+.btn.on { border-color: var(--neon-m); color: #ffd2f1; box-shadow: 0 0 0 1px var(--neon-m), 0 0 14px rgba(255, 79, 195, .6); }
+.ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; pointer-events: none; }
+/* round icon buttons */
+.ib { width: 52px; height: 52px; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink);
+  background: radial-gradient(circle at 50% 30%, #3a2f6e, #161131 72%); border: 1.5px solid var(--edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 3px 8px rgba(0, 0, 0, .5); transition: transform .08s, border-color .15s, box-shadow .15s, color .15s; }
+.ib .ic { width: 26px; height: 26px; }
+.ib:hover:not(:disabled), .ib:focus-visible { border-color: rgba(61, 224, 255, .85); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 0 12px rgba(61, 224, 255, .5); outline: none; }
+.ib:active:not(:disabled) { transform: scale(.92); }
+.ib:disabled { opacity: .3; cursor: default; }
+.ib.on { color: #ffd2f1; border-color: var(--neon-m); box-shadow: 0 0 0 1px var(--neon-m), 0 0 16px rgba(255, 79, 195, .7), inset 0 0 12px rgba(255, 79, 195, .35); }
+.ib.off { color: var(--ink2); }
+.ib.step { width: 42px; height: 42px; } .ib.step .ic { width: 20px; height: 20px; stroke-width: 2.8; }
+/* spin: a dark disc in a neon ring; the ring turns slowly at rest and fast while a round plays; autoplay shows the spins left */
+#spinBtn { position: relative; width: 112px; height: 112px; border-radius: 50%; padding: 0; border: 0; cursor: pointer; color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 26%, #6046c0 0%, #2b1d66 44%, #120c2c 76%);
+  box-shadow: 0 0 0 4px #0b0818, 0 0 26px rgba(255, 79, 195, .55), 0 8px 20px rgba(0, 0, 0, .6), inset 0 2px 0 rgba(255, 255, 255, .3), inset 0 -10px 20px rgba(0, 0, 0, .45);
+  transition: transform .08s, filter .15s; }
+#spinBtn::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; padding: 5px; pointer-events: none;
+  background: conic-gradient(#ff4fc3, #3de0ff, #ffd34a, #ff4fc3); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: ringTurn 7s linear infinite; }
+@keyframes ringTurn { to { transform: rotate(360deg); } }
+#spinBtn .ic { width: 60px; height: 60px; stroke-width: 2.3; filter: drop-shadow(0 0 6px rgba(61, 224, 255, .85)); }
+#spinBtn:hover:not(:disabled), #spinBtn:focus-visible { filter: brightness(1.12); outline: none; }
+#spinBtn:active:not(:disabled) { transform: scale(.94); }
+#spinBtn:disabled { filter: saturate(.3) brightness(.6); cursor: default; }
+#spinBtn[data-state=stop]::before, #spinBtn[data-state=busy]::before, #spinBtn[data-state=auto]::before { animation-duration: .9s; }
+#spinBtn[data-state=busy] .ic { opacity: .45; }
+#spinN { display: none; font-family: var(--f-ui); font-size-adjust: none; font-size: 36px; line-height: 1; text-shadow: 0 0 10px rgba(61, 224, 255, .9); }
+#spinBtn[data-state=auto] .ic { display: none; } #spinBtn[data-state=auto] #spinN { display: block; }
+@media (prefers-reduced-motion: reduce) { #spinBtn::before { animation: none; } }
+/* catalog and night rate: glass pills with an icon */
+.pill { position: absolute; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; cursor: pointer; white-space: nowrap;
+  font-family: var(--f-title); font-size-adjust: none; font-size: 15px; letter-spacing: 1px; color: #ffe2f6; text-shadow: 0 0 8px rgba(255, 79, 195, .8);
+  background: linear-gradient(180deg, rgba(44, 24, 78, .94), rgba(16, 9, 32, .96)); border: 1.5px solid rgba(255, 79, 195, .75); border-radius: 16px;
+  box-shadow: 0 0 14px rgba(255, 79, 195, .35), inset 0 1px 0 rgba(255, 255, 255, .15), 0 4px 12px rgba(0, 0, 0, .5); transition: transform .08s, box-shadow .15s, border-color .15s; }
+.pill .ic { width: 24px; height: 24px; color: var(--neon-m); filter: drop-shadow(0 0 4px rgba(255, 79, 195, .8)); }
+.pill:hover:not(:disabled), .pill:focus-visible { box-shadow: 0 0 22px rgba(255, 79, 195, .6), inset 0 1px 0 rgba(255, 255, 255, .15), 0 4px 12px rgba(0, 0, 0, .5); outline: none; }
+.pill:active:not(:disabled) { transform: scale(.96); }
+.pill:disabled { opacity: .4; cursor: default; }
+#anteBtn { border-color: rgba(61, 224, 255, .6); color: #dff8ff; text-shadow: 0 0 8px rgba(61, 224, 255, .7); box-shadow: 0 0 12px rgba(61, 224, 255, .25), inset 0 1px 0 rgba(255, 255, 255, .15), 0 4px 12px rgba(0, 0, 0, .5); }
+#anteBtn .ic { color: var(--neon-c); filter: drop-shadow(0 0 4px rgba(61, 224, 255, .8)); }
+#anteState { font-family: var(--f-ui); font-size: .92em; letter-spacing: .5px; font-weight: 400; padding: 2px 8px; border-radius: 8px; background: rgba(255, 255, 255, .08); color: var(--ink2); text-shadow: none; }
+#anteBtn.on { border-color: var(--neon-c); box-shadow: 0 0 0 1px var(--neon-c), 0 0 20px rgba(61, 224, 255, .6), inset 0 1px 0 rgba(255, 255, 255, .15); }
+#anteBtn.on #anteState { background: var(--neon-c); color: #061420; }
 
-#hud { position: absolute; display: flex; align-items: center; gap: 8px; z-index: 10; }
+/* the bar: a dark glass deck with a neon top edge; it reaches the screen edges through the letterbox */
+#deck { position: absolute; z-index: 9; left: calc(-1 * var(--lx)); right: calc(-1 * var(--lx)); bottom: calc(-1 * var(--ly)); height: calc(var(--deckH) + var(--ly)); pointer-events: none;
+  background: linear-gradient(180deg, rgba(24, 16, 50, .92), rgba(7, 5, 16, .97) 60%); box-shadow: 0 -12px 30px rgba(0, 0, 0, .45); }
+#deck::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-m) 18%, var(--neon-c) 50%, var(--neon-m) 82%, transparent); box-shadow: 0 0 12px rgba(255, 79, 195, .7); }
+#hud { position: absolute; display: flex; align-items: center; gap: 12px; z-index: 10; font-family: var(--f-ui); font-size-adjust: none; }
 #hud > * { flex: none; }
-.field { background: none; border: 10px solid transparent; border-image: url(../assets/ui/ui_field.webp) 60 fill stretch; padding: 2px 12px; min-width: 160px; box-sizing: border-box; text-align: center; position: relative; }
-.field b { font-size: 24px; white-space: nowrap; }
-#betField { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
-#anteTag { position: absolute; right: -14px; top: -22px; width: 58px; height: 40px; background: url(../assets/ui/ui_tag.webp) center / contain no-repeat; pointer-events: none; }
-#betField > div { min-width: 120px; }
-#betField .btn.round { width: 54px; height: 54px; font-size: 26px; --gy: 5px; }
+.field { position: relative; text-align: center; padding: 0 8px; min-width: 150px; }
+.field .lbl { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 12px; letter-spacing: 2px; color: var(--ink2); text-transform: uppercase; line-height: 1.3; }
+.field b { display: block; font-weight: 400; font-size: 25px; line-height: 1.15; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(150, 130, 255, .35); }
+#winField b.hot { color: var(--gold); text-shadow: 0 0 14px rgba(255, 190, 60, .75); }
+.betGrp { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); }
+#betField { min-width: 140px; padding: 0; }
+.pick { display: block; width: 100%; background: none; border: 0; border-radius: 12px; padding: 2px 8px; color: inherit; font: inherit; cursor: pointer; }
+.pick:hover:not(:disabled), .pick:focus-visible { background: rgba(255, 255, 255, .07); outline: none; }
+.pick:disabled { cursor: default; }
+.chev { width: 14px; height: 14px; stroke-width: 2.6; }
+.pick:disabled .chev { opacity: 0; }
+#anteTag { position: absolute; right: 4px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--neon-c); box-shadow: 0 0 8px var(--neon-c); pointer-events: none; }
 
 #toast { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); background: linear-gradient(180deg, #161a33, #06070f); border: 2px solid #ffb03a; border-radius: 10px; box-shadow: 0 0 18px rgba(255, 176, 58, .5); padding: 12px 22px; font-size: 22px; z-index: 30; white-space: nowrap; }
 
@@ -293,56 +377,79 @@ button { font: inherit; color: inherit; }
 #stage.land #tapeLog { left: calc(1070px + var(--e)); top: 320px; width: 190px; height: 180px; }
 #stage.land #feeBox { left: calc(1070px + var(--e)); top: 320px; width: 190px; }
 #stage.land #feeBox:not(.hide) ~ #tapeLog { top: 420px; height: 90px; }
-#stage.land #buyBtn { left: calc(1056px + var(--e)); top: 440px; width: 210px; font-size: 14px; }
-#stage.land #anteBtn { left: calc(1056px + var(--e)); top: 510px; width: 210px; height: 56px; font-size: 13px; }
-#stage.land #hud { left: calc(228px + var(--e) / 2); right: 22px; top: 572px; height: 140px; justify-content: space-between; }
-#stage.land #spinBtn { order: 9; }
+#stage.land #buyBtn { left: calc(1056px + var(--e)); top: 452px; width: 210px; height: 52px; }
+#stage.land #anteBtn { left: calc(1056px + var(--e)); top: 516px; width: 210px; height: 52px; font-size: 13px; }
+/* landscape bar: menu · sound · balance · bet − value + · win (centred in the free space) · turbo · SPIN (raised over the edge) · auto */
+#stage.land #hud { left: 16px; right: 16px; bottom: 0; height: var(--deckH); }
+#stage.land #winField { margin: 0 auto; min-width: 200px; }
+#stage.land #winField b { font-size: 28px; }
+#stage.land #spinBtn { align-self: flex-end; margin-bottom: 8px; }
+/* phones held sideways: the round buttons grow to stay ≥ 28 px on a 375-px-high screen */
+#stage.land.lite .ib { width: 58px; height: 58px; } #stage.land.lite .ib.step { width: 56px; height: 56px; }
+#stage.land .field + .field, #stage.land .field + .betGrp, #stage.land .betGrp + .field { margin-left: 4px; }
 /* in the bonus the side column (portrait: the row under the TV) shows spins/multiplier/tape log; the disabled catalog and ante buttons would sit under the log */
 #stage.bonus #buyBtn, #stage.bonus #anteBtn { visibility: hidden; }
 
 /* ---------- portrait 720×1280 ---------- */
 /* tall phones: --e (0–280) extra design height; 60 % goes above the TV (bigger Del), the rest spreads the HUD */
-#stage.port #del { left: 0; top: 4px; width: 250px; height: calc(430px + var(--e) * .45); z-index: 0; } /* stands behind the TV, cut at the thighs */
-#stage.port #tape { left: 260px; top: calc(56px + var(--e) * .25); width: 430px; height: 70px; }
-#stage.port #fsBox { left: 260px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
-#stage.port #multBox { left: 485px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
-#stage.port #feeBox { left: 30px; top: calc(146px + var(--e) * .4); width: 205px; height: 110px; }
-#stage.port #tapeLog { left: 30px; top: calc(885px + var(--e) * .6); width: 660px; height: 52px; display: flex; gap: 12px; font-size: 14px; padding: 0 4px; }
-#stage.port #buyBtn { left: 30px; top: calc(885px + var(--e) * .6); width: 320px; height: 56px; }
-#stage.port #anteBtn { left: 370px; top: calc(885px + var(--e) * .6); width: 320px; height: 56px; }
-/* HUD rows: balance | win, then bet, then menu · sound · SPIN · turbo · auto */
-#stage.port #hud { left: 20px; right: 20px; top: calc(952px + var(--e) * .6); bottom: 12px; flex-wrap: wrap; justify-content: center; align-content: space-evenly; gap: 10px 18px; }
-#stage.port #hud::before { content: ""; flex-basis: 100%; height: 0; order: 5; }
-#stage.port #balField, #stage.port #winField { width: 320px; }
-#stage.port #balField { order: 1; } #stage.port #winField { order: 2; }
-#stage.port #betField { order: 4; width: 380px; justify-content: space-between; }
-#stage.port #menuBtn { order: 6; } #stage.port #soundBtn { order: 7; }
-#stage.port #spinBtn { order: 8; width: 136px; height: 136px; --gy: 12.4px; --gx: 3.4px; }
-#stage.port #soundBtn { --gy: 2.8px; } #stage.port #menuBtn, #stage.port #autoBtn { --gy: 4.8px; }
-#stage.port #turboBtn { order: 9; } #stage.port #autoBtn { order: 10; }
-#stage.port .btn.round { width: 78px; height: 78px; align-self: center; --gy: 7.2px; }
-#stage.port #betField .btn.round { width: 64px; height: 64px; --gy: 5.9px; }
+/* tall phones: --e (0–280) extra design height goes to the scene above the TV. Del grows with it and stands behind the TV, which
+   cuts him at the thighs (62 % of his height on the TV's top edge at 260 + .9e); the counter and the bonus boxes sit right of him */
+#stage.port #del { left: 0; top: calc(var(--e) * .342); width: calc((420px + var(--e) * .9) * .594); height: calc(420px + var(--e) * .9); z-index: 0; }
+#stage.port #tape { left: calc(270px + var(--e) * .4); top: calc(56px + var(--e) * .25); width: calc(420px - var(--e) * .4); height: 70px; }
+#stage.port #fsBox { left: calc(270px + var(--e) * .4); top: calc(146px + var(--e) * .4); width: calc(200px - var(--e) * .2); height: 110px; }
+#stage.port #multBox { left: calc(490px + var(--e) * .2); top: calc(146px + var(--e) * .4); width: calc(200px - var(--e) * .2); height: 110px; }
+/* in the bonus the catalog/night-rate row under the TV carries the tape log, and the late-fee meter at its left end */
+#stage.port #feeBox { left: 30px; top: calc(944px + var(--e) * .9); width: 200px; height: 70px; padding-top: 0; }
+#stage.port #feeBox b { font-size: 26px; line-height: 1.1; }
+#stage.port #tapeLog { left: 30px; top: calc(952px + var(--e) * .9); width: 660px; height: 56px; display: flex; gap: 12px; font-size: 14px; padding: 0 4px; }
+#stage.port #feeBox:not(.hide) ~ #tapeLog { left: 246px; width: 444px; }
+#stage.port #buyBtn { left: 30px; top: calc(952px + var(--e) * .9); width: 320px; height: 56px; }
+#stage.port #anteBtn { left: 370px; top: calc(952px + var(--e) * .9); width: 320px; height: 56px; }
+/* portrait bar: a value row (balance · bet · win) over a control row (menu · sound · − · SPIN · + · turbo · auto); bet sits right
+   above the spin button with its − and + on either side of it */
+#stage.port { --deckH: calc(258px + var(--e) * .1); }
+#stage.port #hud { left: 0; right: 0; bottom: 0; height: var(--deckH); display: block; }
+#stage.port .betGrp { display: contents; }
+#stage.port #hud > *, #stage.port .betGrp > * { position: absolute; }
+#stage.port .field { top: 18px; width: 216px; min-width: 0; padding: 0 4px; }
+#stage.port #balField { left: 18px; } #stage.port #betField { left: 252px; } #stage.port #winField { left: 486px; }
+#stage.port .field b { font-size: 27px; }
+#stage.port #betField::before, #stage.port #winField::before { content: ""; position: absolute; left: -10px; top: 6px; bottom: 6px; width: 1px; background: rgba(255, 255, 255, .1); }
+#stage.port #spinBtn { left: 280px; top: calc(86px + var(--e) * .06); width: 160px; height: 160px; }
+#stage.port #spinBtn .ic { width: 82px; height: 82px; }
+#stage.port #spinN { font-size: 48px; }
+#stage.port .ib { top: calc(134px + var(--e) * .06); width: 64px; height: 64px; }
+#stage.port .ib .ic { width: 30px; height: 30px; }
+#stage.port .ib.step { top: calc(134px + var(--e) * .06); width: 64px; height: 64px; }
+#stage.port .ib.step .ic { width: 26px; height: 26px; }
+#stage.port #menuBtn { left: 20px; } #stage.port #soundBtn { left: 102px; } #stage.port #betMinus { left: 196px; }
+#stage.port #betPlus { left: 460px; } #stage.port #turboBtn { left: 554px; } #stage.port #autoBtn { left: 636px; }
 
-#stage.busy #spinBtn { border-color: #888; }
-#stage.replay #hud, #stage.replay #buyBtn, #stage.replay #anteBtn { display: none; }
+#stage.replay #hud, #stage.replay #deck, #stage.replay #buyBtn, #stage.replay #anteBtn { display: none; }
 
 /* ---------- dialogs (unscaled, responsive) ---------- */
 #dlgBack { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 40; }
 .dlg { font-family: var(--f-text); font-size-adjust: none; }
 .dlg h2, .dlg h3 { font-family: var(--f-title); font-weight: 400; }
 .dlg { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, 94vw); max-height: 92vh; overflow-y: auto;
-  background: none; border: clamp(18px, 4vmin, 40px) solid transparent; border-image: url(../assets/ui/ui_panel.webp) 168 fill stretch; padding: clamp(4px, 1.5vmin, 12px); font-size: clamp(12px, 2.4vmin, 16px); }
+  background: linear-gradient(180deg, rgba(34, 24, 70, .98), rgba(11, 8, 26, .98)); border: 1.5px solid rgba(255, 79, 195, .6); border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 0 34px rgba(255, 79, 195, .28), 0 20px 60px rgba(0, 0, 0, .7); padding: clamp(10px, 3vmin, 26px); font-size: clamp(12px, 2.4vmin, 16px); }
+.dlg h2 { color: #ffe2f6; text-shadow: 0 0 10px rgba(255, 79, 195, .7); }
+.dlg li .ic { width: 1.35em; height: 1.35em; vertical-align: -.32em; }
+#betList { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; margin: 4px 0 6px; }
+#betList .chip { padding: 10px 6px; font-size: 1.05em; font-variant-numeric: tabular-nums; }
 .dlg.wide { width: min(860px, 96vw); }
 .dlg h2 { margin: .5em 2.2em 12px 0; font-size: 1.4em; letter-spacing: 2px; }
 .dlg h3 { margin: 18px 0 6px; color: var(--wild); font-size: 1.05em; }
 .dlg .close { position: absolute; right: 8px; top: 8px; padding: 4px 10px; }
 .dlg .row { display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
-.dlg select { font: inherit; background: #333; color: #eee; border: 1px solid #666; }
+.dlg select { font: inherit; background: #1d1638; color: var(--ink); border: 1.5px solid var(--edge); border-radius: 8px; padding: 3px 6px; }
+.dlg input[type=checkbox] { accent-color: var(--neon-m); width: 1.1em; height: 1.1em; }
 .chip { padding: 4px 10px; }
-.buy-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin: 8px 0; }
+.buy-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin: 8px 0; font-family: var(--f-text); padding: 10px 14px; }
 .buy-item img { width: 56px; height: 84px; object-fit: contain; flex: none; }
 .buy-item > div { min-width: 0; }
-.buy-item b { display: block; font-size: 1.15em; } .buy-item span { display: block; color: #bbb; font-size: .9em; } .buy-item em { font-style: normal; color: var(--wild); }
+.buy-item b { display: block; font-size: 1.15em; font-family: var(--f-ui); font-weight: 400; letter-spacing: .5px; } .buy-item span { display: block; color: #bbb; font-size: .9em; } .buy-item em { font-style: normal; color: var(--wild); }
 /* purchase confirmation: its own window and backdrop over the catalog */
 #askBack { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 42; }
 .dlg.ask { z-index: 43; width: min(380px, 90vw); text-align: center; outline: none; }
@@ -393,7 +500,7 @@ table.t td, table.t th { border: 1px solid #444; padding: 4px 6px; text-align: l
 #replayCard table { width: auto; max-width: 92vw; }
 /* very short screens (400x225 embeds, phones in landscape): denser dialogs and splash */
 @media (max-height: 320px) {
-  .dlg { max-height: 96vh; border-width: 12px; padding: 2px 4px; font-size: 11px; }
+  .dlg { max-height: 96vh; padding: 6px 10px; font-size: 11px; border-radius: 12px; }
   .dlg h2 { margin: .2em 2.6em 6px 0; font-size: 1.25em; }
   .dlg .close { right: 4px; top: 4px; padding: 1px 7px; }
   .dlg .row { margin: 5px 0; }
