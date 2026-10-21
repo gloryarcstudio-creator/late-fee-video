@@ -247,15 +247,15 @@ button { font: inherit; color: inherit; }
 #spinBtn::before { content: ""; position: absolute; inset: 16%; pointer-events: none; background: url(../assets/ui/uk_hub.webp) center / 100% 100% no-repeat;
   animation: ringTurn 10s linear infinite; }
 @keyframes ringTurn { to { transform: rotate(360deg); } }
-#spinBtn .cap { position: relative; width: 44%; height: 44%; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none;
+#spinBtn .cap { position: relative; width: 50%; height: 50%; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none;
   background: url(../assets/ui/uk_round.webp) center / 100% 100% no-repeat; box-shadow: 0 2px 6px rgba(0, 0, 0, .7); }
-#spinBtn .ic { width: 30px; height: 30px; stroke-width: 2.6; filter: drop-shadow(0 0 5px rgba(61, 224, 255, .9)); }
+#spinBtn .ic { width: 36px; height: 36px; stroke-width: 2.6; filter: drop-shadow(0 0 5px rgba(61, 224, 255, .9)); }
 #spinBtn:hover:not(:disabled), #spinBtn:focus-visible { filter: brightness(1.12); outline: none; }
 #spinBtn:active:not(:disabled) { transform: scale(.94); }
 #spinBtn:disabled { filter: saturate(.3) brightness(.6); cursor: default; }
 #spinBtn[data-state=stop]::before, #spinBtn[data-state=busy]::before, #spinBtn[data-state=auto]::before { animation-duration: .9s; }
 #spinBtn[data-state=busy] .ic { opacity: .45; }
-#spinN { display: none; font-family: var(--f-ui); font-size-adjust: none; font-size: 22px; line-height: 1; text-shadow: 0 0 8px rgba(61, 224, 255, .9); }
+#spinN { display: none; font-family: var(--f-ui); font-size-adjust: none; font-size: 26px; line-height: 1; text-shadow: 0 0 8px rgba(61, 224, 255, .9); }
 #spinBtn[data-state=auto] .ic { display: none; } #spinBtn[data-state=auto] #spinN { display: block; }
 @media (prefers-reduced-motion: reduce) { #spinBtn::before { animation: none; } }
 /* catalog and night rate (batch 10): the spine of a rental cassette; the icon sits on the black shell at the left, the text on
@@ -419,15 +419,15 @@ button { font: inherit; color: inherit; }
 #stage.port #hud { left: 0; right: 0; bottom: 0; height: var(--deckH); display: block; }
 #stage.port .betGrp { display: contents; }
 #stage.port #hud > *, #stage.port .betGrp > * { position: absolute; }
-#stage.port .field { top: 18px; width: 216px; min-width: 0; padding: 0 12px; --fh: 84px; }
+#stage.port .field { top: 12px; width: 216px; min-width: 0; padding: 0 12px; --fh: 72px; border-image-width: 12px 14px 13px; }
 #stage.port .field .lbl { font-size: 13px; }
 #stage.port .pill { --ph: 56px; }
 #stage.port #deck { border-image-width: 16px 24px 12px; }
 #stage.port #balField { left: 18px; } #stage.port #betField { left: 252px; } #stage.port #winField { left: 486px; }
-#stage.port .field b { font-size: 27px; }
-#stage.port #spinBtn { left: 280px; top: calc(86px + var(--e) * .06); width: 160px; height: 160px; }
-#stage.port #spinBtn .ic { width: 42px; height: 42px; }
-#stage.port #spinN { font-size: 30px; }
+#stage.port .field b { font-size: 26px; }
+#stage.port #spinBtn { left: 280px; top: calc(90px + var(--e) * .06); width: 160px; height: 160px; }
+#stage.port #spinBtn .ic { width: 50px; height: 50px; }
+#stage.port #spinN { font-size: 36px; }
 #stage.port .ib { top: calc(134px + var(--e) * .06); width: 64px; height: 64px; }
 #stage.port .ib .ic { width: 30px; height: 30px; }
 #stage.port .ib.step { top: calc(134px + var(--e) * .06); width: 64px; height: 64px; }
