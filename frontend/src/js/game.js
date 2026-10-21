@@ -232,8 +232,11 @@
   function fitPills(force) {
     for (const id of ['buyBtn', 'anteBtn']) {
       const el = $(id), key = el.textContent + '|' + layout.cell; if (!el.clientWidth || (!force && el.dataset.fit === key)) continue; el.dataset.fit = key;
-      el.style.fontSize = ''; let f = parseFloat(getComputedStyle(el).fontSize);
-      while (el.scrollWidth > el.clientWidth + 1 && f > 9) { f -= 0.5; el.style.fontSize = f + 'px'; }
+      el.style.fontSize = ''; const cs = getComputedStyle(el); let f = parseFloat(cs.fontSize);
+      // the text sits centred on the cassette label, so overflow shows on both sides: compare the in-flow items with the label
+      const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), items = [...el.children].filter(c => getComputedStyle(c).position !== 'absolute');
+      const need = () => items.reduce((a, c) => a + c.getBoundingClientRect().width, 0) / (el.getBoundingClientRect().width / el.offsetWidth) + parseFloat(cs.columnGap || 0) * (items.length - 1);
+      while (need() > room + 1 && f > 9) { f -= 0.5; el.style.fontSize = f + 'px'; }
     }
   }
   // ---------- UI state ----------
@@ -708,6 +711,7 @@
   const SC0 = PORT0 ? Math.min(innerWidth / 720, innerHeight / 1280) : Math.min(innerWidth / 1280, innerHeight / 720);
   const DEL_M = Math.max(innerWidth, innerHeight) <= 960 || (PORT0 ? 430 : 520) * SC0 * (devicePixelRatio || 1) <= 460;
   const ART = ['L1', 'L2', 'L3', 'L4', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3', 'P', 'W', 'S', 'R'].map(k => `assets/symbols/sym_${k}.webp`)
+    .concat(['spin', 'hub', 'round', 'deck', 'field', 'tape', 'panel', 'key'].map(k => `assets/ui/uk_${k}.webp`))
     .concat(['assets/scene/tv_frame.webp', 'assets/scene/screen_crt.webp', PORT0 || Math.max(innerWidth, innerHeight) <= 960 ? 'assets/bg/bg_land_m.webp' : 'assets/bg/bg_land.webp', `assets/del/${DEL_M ? 'm/' : ''}f/idle_0.webp${DEL.V}`, 'assets/promo/logo_emblem.webp']);
   // bonus background and Del's other strips (~8 MB desktop, ~5.7 MB phone) load after the game is shown, not behind the splash
   // v31: in steps 0.7 s apart, each one only while no round plays, so the first spins never share a frame with a decode burst

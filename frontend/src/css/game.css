@@ -50,9 +50,9 @@ button { font: inherit; color: inherit; }
 
 
 
-#tape { position: absolute; z-index: 5; border-radius: 14px; background: linear-gradient(180deg, #0b1510, #040806); border: 1.5px solid rgba(120, 255, 170, .35);
-  box-shadow: inset 0 0 16px rgba(60, 255, 120, .14), 0 0 0 4px rgba(16, 11, 34, .92), 0 0 0 5.5px var(--edge), 0 6px 14px rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 30px; letter-spacing: 3px; color: #b9f5c8; text-shadow: 0 0 6px #3f7; }
-#tape .lbl { font-size: 14px; color: var(--dim); letter-spacing: 2px; }
+#tape { position: absolute; z-index: 5; border-image: url(../assets/ui/uk_field.webp) 33 40 36 40 fill / 13px 16px 14px; box-shadow: 0 6px 14px rgba(0, 0, 0, .5); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 30px; letter-spacing: 3px; color: #c9f6ff; text-shadow: 0 0 8px rgba(61, 224, 255, .9); }
+#tape .lbl { font-size: 14px; color: #8fdcf0; letter-spacing: 2px; }
 
 /* TV: #tv is the reel box; #screen (blue tube) and #tvFrame (keyed CRT art) are positioned around it from vars set in layout() */
 #tv { position: absolute; width: calc(var(--cell) * 5 + var(--gap) * 4); height: calc(var(--cell) * 3); z-index: 1; }
@@ -192,8 +192,8 @@ button { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) { #sparks { display: none; } #winCount.show, #winCount.out { animation: none; } }
 @keyframes winPop { 0% { transform: translateX(-50%) scale(.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-#side > div { position: absolute; z-index: 5; padding: 4px 10px 8px; text-align: center; border-radius: 16px; background: linear-gradient(180deg, rgba(36, 22, 74, .92), rgba(10, 7, 24, .95));
-  border: 1.5px solid rgba(255, 79, 195, .6); box-shadow: 0 0 18px rgba(255, 79, 195, .3), inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px rgba(0, 0, 0, .5); }
+#side > div { position: absolute; z-index: 5; padding: 8px 14px 10px; text-align: center; border-radius: 12px; border-image: url(../assets/ui/uk_field.webp) 33 40 36 40 fill / 14px 17px 15px;
+  box-shadow: 0 0 18px rgba(255, 79, 195, .25), 0 6px 14px rgba(0, 0, 0, .5); }
 #side .lbl, .field .lbl { display: block; font-size: 13px; color: var(--dim); letter-spacing: 2px; }
 #side .lbl { font-family: var(--f-title); font-size-adjust: none; font-size: 12px; letter-spacing: 1.5px; color: #9fe9ff; text-shadow: 0 0 6px rgba(61, 224, 255, .6); margin-top: 4px; }
 #side b { font-weight: 400; }
@@ -221,72 +221,80 @@ button { font: inherit; color: inherit; }
 #stage.port #tapeLog .rec { margin: 6px 0; font-size: 18px; }
 
 /* ---------- controls (v31): one glass-and-neon set for the bet bar, the side buttons, counters and dialogs ---------- */
-.btn { font-family: var(--f-ui); font-size-adjust: none; background: linear-gradient(180deg, #2c2352, #161130); border: 1.5px solid var(--edge); border-radius: 12px; color: var(--ink);
+.btn { font-family: var(--f-ui); font-size-adjust: none; background: none; border: 0; border-image: url(../assets/ui/uk_key.webp) 31 fill / 10px; border-radius: 10px; color: var(--ink);
   cursor: pointer; padding: 9px 16px; font-size: 16px; letter-spacing: .5px; transition: transform .08s, border-color .15s, box-shadow .15s; }
-.btn:hover:not(:disabled), .btn:focus-visible { border-color: rgba(61, 224, 255, .75); outline: none; }
+.btn:hover:not(:disabled), .btn:focus-visible { box-shadow: 0 0 0 2px rgba(61, 224, 255, .7), 0 0 14px rgba(61, 224, 255, .45); outline: none; }
 .btn:active:not(:disabled) { transform: scale(.95); }
 .btn:disabled { opacity: .35; cursor: default; }
-.btn.on { border-color: var(--neon-m); color: #ffd2f1; box-shadow: 0 0 0 1px var(--neon-m), 0 0 14px rgba(255, 79, 195, .6); }
+.btn.on { color: #ffd2f1; box-shadow: 0 0 0 2px var(--neon-m), 0 0 16px rgba(255, 79, 195, .7); }
 .ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; pointer-events: none; }
 /* round icon buttons */
 .ib { width: 52px; height: 52px; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink);
-  background: radial-gradient(circle at 50% 30%, #3a2f6e, #161131 72%); border: 1.5px solid var(--edge);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 3px 8px rgba(0, 0, 0, .5); transition: transform .08s, border-color .15s, box-shadow .15s, color .15s; }
-.ib .ic { width: 26px; height: 26px; }
-.ib:hover:not(:disabled), .ib:focus-visible { border-color: rgba(61, 224, 255, .85); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 0 12px rgba(61, 224, 255, .5); outline: none; }
+  background: url(../assets/ui/uk_round.webp) center / 100% 100% no-repeat; border: 0;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55); transition: transform .08s, box-shadow .15s, color .15s; }
+.ib .ic { width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .8)); }
+.ib:hover:not(:disabled), .ib:focus-visible { box-shadow: 0 0 0 2px rgba(61, 224, 255, .75), 0 0 14px rgba(61, 224, 255, .55); outline: none; }
 .ib:active:not(:disabled) { transform: scale(.92); }
 .ib:disabled { opacity: .3; cursor: default; }
-.ib.on { color: #ffd2f1; border-color: var(--neon-m); box-shadow: 0 0 0 1px var(--neon-m), 0 0 16px rgba(255, 79, 195, .7), inset 0 0 12px rgba(255, 79, 195, .35); }
+.ib.on { color: #ff9fe0; box-shadow: 0 0 0 2px var(--neon-m), 0 0 18px rgba(255, 79, 195, .8); }
 .ib.off { color: var(--ink2); }
 .ib.step { width: 42px; height: 42px; } .ib.step .ic { width: 20px; height: 20px; stroke-width: 2.8; }
-/* spin: a dark disc in a neon ring; the ring turns slowly at rest and fast while a round plays; autoplay shows the spins left */
+/* spin (batch 10): chrome base with a painted neon ring; a tape spool turns inside it, slowly at rest and fast while a round
+   plays; the icon (spin / stop) or the autoplay count sits on a small black cap in the middle */
 #spinBtn { position: relative; width: 112px; height: 112px; border-radius: 50%; padding: 0; border: 0; cursor: pointer; color: #fff; display: inline-flex; align-items: center; justify-content: center;
-  background: radial-gradient(circle at 50% 26%, #6046c0 0%, #2b1d66 44%, #120c2c 76%);
-  box-shadow: 0 0 0 4px #0b0818, 0 0 26px rgba(255, 79, 195, .55), 0 8px 20px rgba(0, 0, 0, .6), inset 0 2px 0 rgba(255, 255, 255, .3), inset 0 -10px 20px rgba(0, 0, 0, .45);
+  background: url(../assets/ui/uk_spin.webp) center / 100% 100% no-repeat; box-shadow: 0 0 24px rgba(255, 79, 195, .45), 0 8px 20px rgba(0, 0, 0, .6);
   transition: transform .08s, filter .15s; }
-#spinBtn::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; padding: 5px; pointer-events: none;
-  background: conic-gradient(#ff4fc3, #3de0ff, #ffd34a, #ff4fc3); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
-  animation: ringTurn 7s linear infinite; }
+#spinBtn::before { content: ""; position: absolute; inset: 16%; pointer-events: none; background: url(../assets/ui/uk_hub.webp) center / 100% 100% no-repeat;
+  animation: ringTurn 10s linear infinite; }
 @keyframes ringTurn { to { transform: rotate(360deg); } }
-#spinBtn .ic { width: 60px; height: 60px; stroke-width: 2.3; filter: drop-shadow(0 0 6px rgba(61, 224, 255, .85)); }
+#spinBtn .cap { position: relative; width: 44%; height: 44%; border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  background: url(../assets/ui/uk_round.webp) center / 100% 100% no-repeat; box-shadow: 0 2px 6px rgba(0, 0, 0, .7); }
+#spinBtn .ic { width: 30px; height: 30px; stroke-width: 2.6; filter: drop-shadow(0 0 5px rgba(61, 224, 255, .9)); }
 #spinBtn:hover:not(:disabled), #spinBtn:focus-visible { filter: brightness(1.12); outline: none; }
 #spinBtn:active:not(:disabled) { transform: scale(.94); }
 #spinBtn:disabled { filter: saturate(.3) brightness(.6); cursor: default; }
 #spinBtn[data-state=stop]::before, #spinBtn[data-state=busy]::before, #spinBtn[data-state=auto]::before { animation-duration: .9s; }
 #spinBtn[data-state=busy] .ic { opacity: .45; }
-#spinN { display: none; font-family: var(--f-ui); font-size-adjust: none; font-size: 36px; line-height: 1; text-shadow: 0 0 10px rgba(61, 224, 255, .9); }
+#spinN { display: none; font-family: var(--f-ui); font-size-adjust: none; font-size: 22px; line-height: 1; text-shadow: 0 0 8px rgba(61, 224, 255, .9); }
 #spinBtn[data-state=auto] .ic { display: none; } #spinBtn[data-state=auto] #spinN { display: block; }
 @media (prefers-reduced-motion: reduce) { #spinBtn::before { animation: none; } }
-/* catalog and night rate: glass pills with an icon */
-.pill { position: absolute; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; cursor: pointer; white-space: nowrap;
-  font-family: var(--f-title); font-size-adjust: none; font-size: 15px; letter-spacing: 1px; color: #ffe2f6; text-shadow: 0 0 8px rgba(255, 79, 195, .8);
-  background: linear-gradient(180deg, rgba(44, 24, 78, .94), rgba(16, 9, 32, .96)); border: 1.5px solid rgba(255, 79, 195, .75); border-radius: 16px;
-  box-shadow: 0 0 14px rgba(255, 79, 195, .35), inset 0 1px 0 rgba(255, 255, 255, .15), 0 4px 12px rgba(0, 0, 0, .5); transition: transform .08s, box-shadow .15s, border-color .15s; }
-.pill .ic { width: 24px; height: 24px; color: var(--neon-m); filter: drop-shadow(0 0 4px rgba(255, 79, 195, .8)); }
-.pill:hover:not(:disabled), .pill:focus-visible { box-shadow: 0 0 22px rgba(255, 79, 195, .6), inset 0 1px 0 rgba(255, 255, 255, .15), 0 4px 12px rgba(0, 0, 0, .5); outline: none; }
+/* catalog and night rate (batch 10): the spine of a rental cassette; the icon sits on the black shell at the left, the text on
+   the paper label (label: 17-82 % of the height, stripe to 25 %, from .83 h after the left end to .51 h before the right end).
+   The art is on ::before; Night Rate paints its label stripe cyan with ::after; --ph is the pill height. */
+.pill { position: absolute; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; white-space: nowrap; --ph: 52px;
+  padding: calc(var(--ph) * .08) calc(var(--ph) * .56) 0 calc(var(--ph) * .88); border: 0; border-radius: calc(var(--ph) * .1); background: none;
+  font-family: var(--f-title); font-size-adjust: none; font-size: 15px; letter-spacing: .5px; color: #2a1238;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .55); transition: transform .08s, box-shadow .15s; }
+.pill::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border-image: url(../assets/ui/uk_tape.webp) 42 162 29 145 fill / calc(var(--ph) * .2625) calc(var(--ph) * 1.0125) calc(var(--ph) * .18) calc(var(--ph) * .906); }
+.pill .ic { position: absolute; left: calc(var(--ph) * .42 - 12px); top: 50%; margin-top: -12px; width: 24px; height: 24px; color: #ff7fd6; filter: drop-shadow(0 0 4px rgba(255, 79, 195, .9)); }
+.pill:hover:not(:disabled), .pill:focus-visible { box-shadow: 0 0 0 2px rgba(255, 79, 195, .8), 0 0 20px rgba(255, 79, 195, .6), 0 4px 12px rgba(0, 0, 0, .5); outline: none; }
 .pill:active:not(:disabled) { transform: scale(.96); }
 .pill:disabled { opacity: .4; cursor: default; }
-#anteBtn { border-color: rgba(61, 224, 255, .6); color: #dff8ff; text-shadow: 0 0 8px rgba(61, 224, 255, .7); box-shadow: 0 0 12px rgba(61, 224, 255, .25), inset 0 1px 0 rgba(255, 255, 255, .15), 0 4px 12px rgba(0, 0, 0, .5); }
-#anteBtn .ic { color: var(--neon-c); filter: drop-shadow(0 0 4px rgba(61, 224, 255, .8)); }
-#anteState { font-family: var(--f-ui); font-size: .92em; letter-spacing: .5px; font-weight: 400; padding: 2px 8px; border-radius: 8px; background: rgba(255, 255, 255, .08); color: var(--ink2); text-shadow: none; }
-#anteBtn.on { border-color: var(--neon-c); box-shadow: 0 0 0 1px var(--neon-c), 0 0 20px rgba(61, 224, 255, .6), inset 0 1px 0 rgba(255, 255, 255, .15); }
-#anteBtn.on #anteState { background: var(--neon-c); color: #061420; }
+#anteBtn::after { content: ""; position: absolute; z-index: -1; pointer-events: none; left: calc(var(--ph) * .8375); right: calc(var(--ph) * .5125); top: calc(var(--ph) * .181); height: calc(var(--ph) * .082);
+  border-radius: calc(var(--ph) * .06) calc(var(--ph) * .06) 0 0; background: linear-gradient(180deg, #7ff6ff, #12b4dc); }
+#anteBtn .ic { color: #8ff0ff; filter: drop-shadow(0 0 4px rgba(61, 224, 255, .9)); }
+#anteBtn:hover:not(:disabled), #anteBtn:focus-visible { box-shadow: 0 0 0 2px rgba(61, 224, 255, .8), 0 0 20px rgba(61, 224, 255, .6), 0 4px 12px rgba(0, 0, 0, .5); }
+#anteState { font-family: var(--f-ui); font-size: .92em; letter-spacing: .5px; font-weight: 400; padding: 2px 8px; border-radius: 6px; background: #2a1238; color: #f4ecd9; }
+#anteBtn.on { box-shadow: 0 0 0 2px var(--neon-c), 0 0 22px rgba(61, 224, 255, .75), 0 4px 12px rgba(0, 0, 0, .5); }
+#anteBtn.on #anteState { background: #0aa9c9; color: #fff; }
 
-/* the bar: a dark glass deck with a neon top edge; it reaches the screen edges through the letterbox */
+/* the bar (batch 10): the front panel of a VCR, chrome trim and a magenta line on top, end caps with screws; only the middle
+   stretches, and it reaches the screen edges through the letterbox */
 #deck { position: absolute; z-index: 9; left: calc(-1 * var(--lx)); right: calc(-1 * var(--lx)); bottom: calc(-1 * var(--ly)); height: calc(var(--deckH) + var(--ly)); pointer-events: none;
-  background: linear-gradient(180deg, rgba(24, 16, 50, .92), rgba(7, 5, 16, .97) 60%); box-shadow: 0 -12px 30px rgba(0, 0, 0, .45); }
-#deck::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--neon-m) 18%, var(--neon-c) 50%, var(--neon-m) 82%, transparent); box-shadow: 0 0 12px rgba(255, 79, 195, .7); }
+  border-image: url(../assets/ui/uk_deck.webp) 28 45 21 45 fill / 13px 20px 10px; filter: brightness(.8);
+  box-shadow: 0 -10px 26px rgba(0, 0, 0, .5); }
 #hud { position: absolute; display: flex; align-items: center; gap: 12px; z-index: 10; font-family: var(--f-ui); font-size-adjust: none; }
 #hud > * { flex: none; }
-.field { position: relative; text-align: center; padding: 0 8px; min-width: 150px; }
-.field .lbl { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 12px; letter-spacing: 2px; color: var(--ink2); text-transform: uppercase; line-height: 1.3; }
-.field b { display: block; font-weight: 400; font-size: 25px; line-height: 1.15; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(150, 130, 255, .35); }
+.field { position: relative; text-align: center; padding: 0 16px; min-width: 150px; height: var(--fh); display: flex; flex-direction: column; justify-content: center; --fh: 66px;
+  border-image: url(../assets/ui/uk_field.webp) 33 40 36 40 fill / calc(var(--fh) * .206) calc(var(--fh) * .25) calc(var(--fh) * .225); }
+.field .lbl { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 11px; letter-spacing: 2px; color: #8fdcf0; text-transform: uppercase; line-height: 1.2; }
+.field b { display: block; font-weight: 400; font-size: 23px; line-height: 1.1; color: #f2fbff; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 0 10px rgba(61, 224, 255, .55); }
 #winField b.hot { color: var(--gold); text-shadow: 0 0 14px rgba(255, 190, 60, .75); }
-.betGrp { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); }
-#betField { min-width: 140px; padding: 0; }
+.betGrp { display: flex; align-items: center; gap: 6px; }
+#betField { min-width: 140px; padding: 0 10px; }
 .pick { display: block; width: 100%; background: none; border: 0; border-radius: 12px; padding: 2px 8px; color: inherit; font: inherit; cursor: pointer; }
-.pick:hover:not(:disabled), .pick:focus-visible { background: rgba(255, 255, 255, .07); outline: none; }
+.pick:hover:not(:disabled), .pick:focus-visible { background: rgba(61, 224, 255, .1); outline: none; }
 .pick:disabled { cursor: default; }
 .chev { width: 14px; height: 14px; stroke-width: 2.6; }
 .pick:disabled .chev { opacity: 0; }
@@ -411,13 +419,15 @@ button { font: inherit; color: inherit; }
 #stage.port #hud { left: 0; right: 0; bottom: 0; height: var(--deckH); display: block; }
 #stage.port .betGrp { display: contents; }
 #stage.port #hud > *, #stage.port .betGrp > * { position: absolute; }
-#stage.port .field { top: 18px; width: 216px; min-width: 0; padding: 0 4px; }
+#stage.port .field { top: 18px; width: 216px; min-width: 0; padding: 0 12px; --fh: 84px; }
+#stage.port .field .lbl { font-size: 13px; }
+#stage.port .pill { --ph: 56px; }
+#stage.port #deck { border-image-width: 16px 24px 12px; }
 #stage.port #balField { left: 18px; } #stage.port #betField { left: 252px; } #stage.port #winField { left: 486px; }
 #stage.port .field b { font-size: 27px; }
-#stage.port #betField::before, #stage.port #winField::before { content: ""; position: absolute; left: -10px; top: 6px; bottom: 6px; width: 1px; background: rgba(255, 255, 255, .1); }
 #stage.port #spinBtn { left: 280px; top: calc(86px + var(--e) * .06); width: 160px; height: 160px; }
-#stage.port #spinBtn .ic { width: 82px; height: 82px; }
-#stage.port #spinN { font-size: 48px; }
+#stage.port #spinBtn .ic { width: 42px; height: 42px; }
+#stage.port #spinN { font-size: 30px; }
 #stage.port .ib { top: calc(134px + var(--e) * .06); width: 64px; height: 64px; }
 #stage.port .ib .ic { width: 30px; height: 30px; }
 #stage.port .ib.step { top: calc(134px + var(--e) * .06); width: 64px; height: 64px; }
@@ -432,8 +442,8 @@ button { font: inherit; color: inherit; }
 .dlg { font-family: var(--f-text); font-size-adjust: none; }
 .dlg h2, .dlg h3 { font-family: var(--f-title); font-weight: 400; }
 .dlg { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, 94vw); max-height: 92vh; overflow-y: auto;
-  background: linear-gradient(180deg, rgba(34, 24, 70, .98), rgba(11, 8, 26, .98)); border: 1.5px solid rgba(255, 79, 195, .6); border-radius: 20px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 0 34px rgba(255, 79, 195, .28), 0 20px 60px rgba(0, 0, 0, .7); padding: clamp(10px, 3vmin, 26px); font-size: clamp(12px, 2.4vmin, 16px); }
+  border: clamp(16px, 3.4vmin, 26px) solid transparent; border-image: url(../assets/ui/uk_panel.webp) 74 fill / clamp(20px, 4.4vmin, 34px); border-radius: clamp(16px, 3vmin, 24px);
+  box-shadow: 0 0 34px rgba(255, 79, 195, .3), 0 20px 60px rgba(0, 0, 0, .7); padding: clamp(6px, 1.6vmin, 14px); font-size: clamp(12px, 2.4vmin, 16px); }
 .dlg h2 { color: #ffe2f6; text-shadow: 0 0 10px rgba(255, 79, 195, .7); }
 .dlg li .ic { width: 1.35em; height: 1.35em; vertical-align: -.32em; }
 #betList { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; margin: 4px 0 6px; }
@@ -488,7 +498,7 @@ table.t td, table.t th { border: 1px solid #444; padding: 4px 6px; text-align: l
   background: linear-gradient(180deg, #ff6fd0, #c2188f); box-shadow: 0 0 0 2px #5a0b44, 0 0 24px rgba(255, 79, 195, .7), inset 0 2px 0 rgba(255, 255, 255, .5); text-shadow: 0 2px 0 #6a0a4e; }
 #splashBtn:disabled { opacity: .55; filter: saturate(.4); }
 /* ready: a glow ring pulses around the button (the button itself stays still, so it is always a stable tap target) */
-#splashBtn { position: relative; }
+#splashBtn { position: relative; border-image: none; }
 #splash.ready #splashBtn::after { content: ""; position: absolute; inset: -6px; border-radius: 999px; pointer-events: none; border: 2px solid rgba(255, 150, 220, .9);
   animation: ringPulse 1.2s ease-out infinite; }
 @keyframes ringPulse { 0% { opacity: .9; inset: -3px; } 100% { opacity: 0; inset: -18px -26px; } }
@@ -504,7 +514,7 @@ table.t td, table.t th { border: 1px solid #444; padding: 4px 6px; text-align: l
   .dlg h2 { margin: .2em 2.6em 6px 0; font-size: 1.25em; }
   .dlg .close { right: 4px; top: 4px; padding: 1px 7px; }
   .dlg .row { margin: 5px 0; }
-  .dlg .btn { padding: 3px 9px; font-size: 12px; }
+  .dlg .btn { padding: 4px 10px; font-size: 12px; border-image-width: 7px; }
   #splash .blue { gap: 2vh; }
   .buy-item { margin: 4px 0; gap: 8px; } .buy-item img { width: 34px; height: 52px; }
   .dlg.ask img { width: 36px; height: 54px; } .dlg.ask h2 { margin: 2px 0; } #buyAskPrice { margin: 0 0 4px; font-size: 1.25em; } #buyConfirmText { margin: 0 0 6px; }
