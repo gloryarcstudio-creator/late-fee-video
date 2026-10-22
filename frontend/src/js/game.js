@@ -56,7 +56,7 @@
     if (text && text !== el.textContent) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     el.textContent = text; el.classList.toggle('hide', !text);
   }
-  // the spin's total, big in the middle of the reels: pops in and counts up; winCount(0) clears it, winCountOut() sends it off
+  // the spin's total, big in the middle of the reels: pops in and counts up; winCount(0) clears it, winCountFly() sends it to WIN
   function winCount(amount, nice) {
     const el = $('winCount'); clearTimeout(winCount.t); cancelAnimationFrame(winCount.raf);
     if (!amount) { el.className = 'hide'; return; }
@@ -65,9 +65,22 @@
     const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = money(amount * (1 - Math.pow(1 - k, 3)), dec); if (k < 1) winCount.raf = requestAnimationFrame(step); };
     step(t0);
   }
-  function winCountOut() {
-    const el = $('winCount'); if (!el.classList.contains('show')) return;
-    el.className = 'out'; winCount.t = setTimeout(() => { el.className = 'hide'; }, 330);
+  // the total flies from the reels into the WIN field, which takes the new round total as it lands. The flying copy lives on the
+  // stage above the bar (the reels sit under it). sum100: this spin's line wins, added to the round total so far.
+  function winCountFly(sum100) {
+    const el = $('winCount'), st = $('stage'); clearTimeout(winCount.t); cancelAnimationFrame(winCount.raf);
+    const land = () => { winField(S.roundWin + sum100, true); const f = $('winField'); f.classList.remove('land'); void f.offsetWidth; f.classList.add('land'); };
+    if (!el.classList.contains('show') || fast() || stillMotion() || !el.animate) { el.className = 'hide'; land(); return wait(0); }
+    const dst = $('winVal'), k = st.getBoundingClientRect().width / st.offsetWidth, s0 = st.getBoundingClientRect();
+    const a = el.getBoundingClientRect(), b = dst.getBoundingClientRect(), cx = r => (r.left + r.width / 2 - s0.left) / k, cy = r => (r.top + r.height / 2 - s0.top) / k;
+    const fly = document.createElement('div'), fs = parseFloat(getComputedStyle(el).fontSize);
+    fly.id = 'winFly'; fly.textContent = money(winMoney(sum100), I18N.decimalsFor(winMoney(sum100), I18N.currency()));
+    fly.style.left = cx(a) + 'px'; fly.style.top = cy(a) + 'px'; fly.style.fontSize = fs + 'px';
+    st.appendChild(fly); el.className = 'hide';
+    const d = S.turbo || S.auto ? 300 : 480, sc = parseFloat(getComputedStyle(dst).fontSize) / fs;
+    fly.animate([{ transform: 'translate(-50%, -50%) scale(1)' }, { transform: `translate(calc(-50% + ${cx(b) - cx(a)}px), calc(-50% + ${cy(b) - cy(a)}px)) scale(${sc})`, opacity: .85 }],
+      { duration: d, easing: 'cubic-bezier(.5, 0, .75, .3)', fill: 'forwards' });
+    return wait(d).then(() => { fly.remove(); land(); });
   }
   // sparks out of each winning cell (cell centres in #tv coordinates, the reel box); one burst per spin, at most 12 cells
   function sparks(wins) {
@@ -93,13 +106,13 @@
       if (c) { c.classList.remove('landfx'); void c.offsetWidth; c.classList.add('landfx'); }
     });
   }
-  // WIN field counts up to the new total instead of jumping
-  function winField(amount100) {
+  // WIN field counts up to the new total instead of jumping (now: set at once, when the flying total lands in it)
+  function winField(amount100, now) {
     const el = $('winVal'), to = amount100 > 0 ? winMoney(amount100) : 0, from = winField.v || 0; winField.v = to;
     cancelAnimationFrame(winField.raf);
     el.classList.toggle('hot', to > 0);
     if (!to) { el.textContent = S.ready ? fmt(0) : '—'; return; }
-    const d = fast() || to <= from ? 0 : Math.min(900, 300 + 120 * Math.log2(1 + (to - from) / S.bet)), t0 = performance.now();
+    const d = now || fast() || to <= from ? 0 : Math.min(900, 300 + 120 * Math.log2(1 + (to - from) / S.bet)), t0 = performance.now();
     const dec = I18N.decimalsFor(to, I18N.currency());
     const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = k < 1 ? money(from + (to - from) * (1 - Math.pow(1 - k, 3)), dec) : fmt(to); if (k < 1) winField.raf = requestAnimationFrame(step); };
     step(t0);
@@ -390,7 +403,7 @@
     },
     async bandWin(e) {
       osd(t('band', { n: e.mult })); sfx('win_m');
-      if (S.lastWins) { const ws = S.lastWins.filter(w => e.lineIndexes.includes(w.meta && w.meta.lineIndex)); Reels.clear(); Reels.dim(true); ws.forEach(w => Reels.highlight(w.positions)); Reels.lines(ws); }
+      if (S.lastWins) { const ws = S.lastWins.filter(w => e.lineIndexes.includes(w.meta && w.meta.lineIndex)); Reels.clear(); Reels.dim(true); ws.forEach(w => Reels.highlight(w.positions)); }
       popup(`+${fmt(winMoney(e.win))} (×${e.mult})`);
       await wait(1100); osd('');
     },
@@ -437,17 +450,18 @@
     // gold frame while the wins show (batch 06), off at the next spin; a faint tint under 5× the bet, the full plate above
     const st = $('stage'); st.style.setProperty('--tvwin', winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)) / S.bet >= 5 ? 1 : .45); st.classList.add('tvwin');
     const col = w => Reels.lineColor((w.meta && w.meta.lineIndex) || 1);
-    const all = () => { Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions, 'hit', col(w))); Reels.lines(wins); };
+    const all = () => { Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions, 'hit', col(w))); };
     all(); sparks(wins);
     // the total counts up in the middle (not on the quick passes inside a feature); 5× the bet and up gets the big size and confetti
     const tot = winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)), nice = tot / S.bet >= 5;
     if (!quick) { winCount(tot, nice); if (nice && tot / S.bet < 20) particles(16); }
-    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 600 : 900); winCountOut(); return; }
-    await wait(1200); winCountOut();
+    const sum100 = wins.reduce((a, w) => a + (w.win || 0), 0);
+    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 600 : 900); if (!quick) await winCountFly(sum100); return; }
+    await wait(1200); await winCountFly(sum100);
     // one line at a time (max 6), then back to all
     if (wins.length > 1) for (const w of wins.slice(0, 6)) {
       if (S.skip) break;
-      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions, 'hit', col(w)); Reels.lines([w]); sfx('line_tick');
+      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions, 'hit', col(w)); sfx('line_tick');
       popup(`${Reels.LABEL[w.symbol] || w.symbol} ×${w.kind}  ${fmt(winMoney(w.win))}`, col(w));
       await wait(560);
     }
@@ -795,7 +809,7 @@
     I18N.setSocial(P.social || I18N.isSocialCurrency(P.currency));
     I18N.apply(); buildAuto(); document.documentElement.lang = I18N.lang();
     ['buyDlg', 'betDlg', 'autoDlg', 'rulesDlg'].forEach(id => $(id).setAttribute('dir', I18N.lang() === 'ar' ? 'rtl' : 'ltr'));
-    Reels.init($('reels'), $('lines'));
+    Reels.init($('reels'));
     DEL.init({ mobile: DEL_M });
     layout(); window.addEventListener('resize', layout);
     $('splashBtn').textContent = RGS_MODE ? t('connecting') : t('loading');

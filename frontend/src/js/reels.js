@@ -10,7 +10,7 @@
     [1, 2, 1, 0, 1], [0, 1, 0, 1, 0], [2, 1, 2, 1, 2], [1, 1, 0, 1, 1], [1, 1, 2, 1, 1],
     [0, 1, 1, 1, 0], [2, 1, 1, 1, 2], [0, 2, 0, 2, 0], [2, 0, 2, 0, 2], [0, 2, 2, 2, 0]];
   const N = 5, ROWS = 5;
-  let root, svg, cell = 136, gap = 6, cols = [], anims = [], strips = window.REELSTRIPS;
+  let root, cell = 136, gap = 6, cols = [], anims = [], strips = window.REELSTRIPS;
   // idle loops (batch 05): {dir, clips: {name: {n, sec}}, rest}. A standing cell gets a strip layer over its still. Every cell of
   // one symbol runs on the same clock (phase = symbol type, not cell), so twins on the board move in sync; different symbols are
   // offset from each other. Each pass is followed by a rest on the first frame, baked into the keyframes so the sync never drifts.
@@ -73,8 +73,8 @@
 
   const Reels = {
     LABEL, PAYLINES,
-    init(el, svgEl) {
-      root = el; svg = svgEl; root.textContent = ''; cols = [];
+    init(el) {
+      root = el; root.textContent = ''; cols = [];
       for (let r = 0; r < N; r++) {
         const reel = document.createElement('div'); reel.className = 'reel';
         const strip = document.createElement('div'); strip.className = 'strip';
@@ -153,7 +153,7 @@
     dim(on) { root.classList.toggle('dimmed', !!on); },
     clear() {
       root.querySelectorAll('.hit,.hit-s').forEach(e => { e.classList.remove('hit', 'hit-s'); e.style.removeProperty('--lc'); });
-      this.dim(false); svg.textContent = '';
+      this.dim(false);
     },
     freeze(reels) { cols.forEach((c, r) => c.reel.classList.toggle('frozen', reels.includes(r))); },
     unfreeze() { cols.forEach(c => c.reel.classList.remove('frozen')); },
@@ -166,28 +166,6 @@
       el.style.top = `calc(${positions[0].row - 1} * var(--cell))`;
       el.style.left = `calc(${r0} * (var(--cell) + var(--gap)))`;
       el.style.width = `calc(${r1 - r0 + 1} * var(--cell) + ${r1 - r0} * var(--gap))`;
-    },
-    // Draw payline polylines for wins (meta.lineIndex is 1-based, as in game_config.paylines).
-    lines(wins) {
-      const W = N * cell + (N - 1) * gap, H = 3 * cell;
-      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      svg.textContent = '';
-      const NS = 'http://www.w3.org/2000/svg', el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
-      wins.forEach((w, k) => {
-        const li = w.meta && w.meta.lineIndex; const pl = PAYLINES[li]; if (!pl) return;
-        const xy = pl.map((row, r) => [r * (cell + gap) + cell / 2, row * cell + cell / 2]);
-        // run the line from the outer edges of reels 1 and 5 so it reads as a line through the whole window
-        xy.unshift([4, xy[0][1]]); xy.push([W - 4, xy[xy.length - 1][1]]);
-        const pts = xy.map(p => p.join(',')).join(' '), col = this.lineColor(li), delay = `${(k * 0.06).toFixed(2)}s`;
-        ['pg', 'pl', 'pc'].forEach(c => {
-          const p = el('polyline', { points: pts, class: c, pathLength: 1 }); if (c !== 'pc') p.style.stroke = col;
-          p.style.animationDelay = delay; svg.appendChild(p);
-        });
-        if (wins.length <= 3) {
-          const dot = el('circle', { r: 6 }), m = el('animateMotion', { dur: '1.1s', repeatCount: 'indefinite', path: 'M' + xy.map(p => p.join(',')).join(' L') });
-          dot.appendChild(m); svg.appendChild(dot);
-        }
-      });
     },
   };
   window.Reels = Reels;

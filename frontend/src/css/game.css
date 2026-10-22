@@ -151,13 +151,6 @@ button { font: inherit; color: inherit; }
 .reel.frozen::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 10px;
   background: linear-gradient(180deg, rgba(216, 74, 158, .22), rgba(216, 74, 158, .04) 35%, rgba(216, 74, 158, .04) 65%, rgba(216, 74, 158, .22)); }
 @keyframes jitter { 0% { transform: translate(0, 0); } 50% { transform: translate(1px, -1px); } 100% { transform: translate(-1px, 1px); } }
-#lines { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
-/* paylines: a wide translucent glow, the coloured line and a white core, drawn on from reel 1, and a spark running along it */
-#lines polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: plDraw .5s ease-out forwards; }
-#lines .pg { stroke-width: 22; opacity: .3; } #lines .pl { stroke-width: 7; } #lines .pc { stroke: #fff; stroke-width: 2.5; opacity: .9; }
-#lines circle { fill: #fff; }
-@keyframes plDraw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { #lines polyline { animation: none; stroke-dashoffset: 0; } #lines circle { display: none; } }
 
 #osd { position: absolute; left: 6px; top: calc(8px - var(--holeTop)); z-index: 4; font-size: 40px; color: var(--osd); letter-spacing: 3px; opacity: 0; text-shadow: 3px 3px 0 #000, 0 0 10px rgba(160, 200, 255, .6); pointer-events: none; }
 #osd.show { opacity: 1; animation: osdIn .3s steps(3) both; }
@@ -172,24 +165,23 @@ button { font: inherit; color: inherit; }
   box-shadow: 0 0 0 1px #000, 0 0 20px color-mix(in srgb, var(--lc, var(--gold)) 70%, transparent), inset 0 0 14px rgba(0, 0, 0, .8);
   text-shadow: 0 0 10px var(--lc, var(--gold)); }
 #spinWin.pop { animation: winPop .38s cubic-bezier(.25, 1.6, .5, 1); }
-/* the spin's total counts up big in the middle of the reels while all its lines show, then flies off before the line-by-line pass */
-#winCount { position: absolute; left: 50%; top: 50%; z-index: 4; pointer-events: none; white-space: nowrap; transform: translate(-50%, -50%);
+/* the spin's total counts up big in the middle of the reels while its winning symbols light up, then flies into WIN (#winFly) */
+#winCount, #winFly { position: absolute; left: 50%; top: 50%; z-index: 4; pointer-events: none; white-space: nowrap; transform: translate(-50%, -50%);
   font-family: var(--f-title); font-size-adjust: none; font-size: 80px; letter-spacing: 2px; color: #ffe27a; -webkit-text-stroke: 4px #1a0828; paint-order: stroke fill;
   text-shadow: 0 3px 0 #c2620e, 0 6px 0 #6b2a05, 0 10px 18px rgba(0, 0, 0, .8), 0 0 30px rgba(255, 176, 58, .9), 0 0 70px rgba(255, 79, 195, .55); }
 #winCount::before { content: ""; position: absolute; left: 50%; top: 50%; width: 150%; height: 190%; transform: translate(-50%, -50%); z-index: -1;
   background: radial-gradient(closest-side, rgba(6, 3, 16, .72), rgba(6, 3, 16, .4) 60%, transparent); }
 #winCount.nice { font-size: 104px; }
 #winCount.show { animation: wcIn .45s cubic-bezier(.2, 1.6, .4, 1) both; }
-#winCount.out { animation: wcOut .32s ease-in both; }
 @keyframes wcIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-@keyframes wcOut { to { transform: translate(-50%, -50%) scale(1.35); opacity: 0; } }
+#winFly { z-index: 30; }
 #stage.port #winCount { font-size: 72px; } #stage.port #winCount.nice { font-size: 92px; }
 /* sparks thrown out of every winning cell when a spin's wins first light up */
 #sparks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
 #sparks i { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 3px var(--c);
   animation: spark var(--d) cubic-bezier(.15, .7, .3, 1) forwards; }
 @keyframes spark { 0% { transform: translate(0, 0) scale(1.2); opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(.2); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { #sparks { display: none; } #winCount.show, #winCount.out { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #sparks { display: none; } #winCount.show, #winField.land { animation: none; } }
 @keyframes winPop { 0% { transform: translateX(-50%) scale(.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
 
 #side > div { position: absolute; z-index: 5; padding: 8px 14px 10px; text-align: center; border-radius: 12px; border-image: url(../assets/ui/uk_field.webp) 33 40 36 40 fill / 14px 17px 15px;
@@ -291,6 +283,9 @@ button { font: inherit; color: inherit; }
 .field .lbl { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 11px; letter-spacing: 2px; color: #8fdcf0; text-transform: uppercase; line-height: 1.2; }
 .field b { display: block; font-weight: 400; font-size: 23px; line-height: 1.1; color: #f2fbff; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 0 10px rgba(61, 224, 255, .55); }
 #winField b.hot { color: var(--gold); text-shadow: 0 0 14px rgba(255, 190, 60, .75); }
+/* the spin's total lands in WIN: a short bump and a gold flash */
+#winField.land { animation: winLand .45s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes winLand { 0% { transform: scale(1.14); filter: brightness(1.8) drop-shadow(0 0 14px rgba(255, 190, 60, .9)); } 100% { transform: none; filter: none; } }
 .betGrp { display: flex; align-items: center; gap: 6px; }
 #betField { min-width: 140px; padding: 0 10px; }
 .pick { display: block; width: 100%; background: none; border: 0; border-radius: 12px; padding: 2px 8px; color: inherit; font: inherit; cursor: pointer; }
