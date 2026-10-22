@@ -173,6 +173,11 @@ button { font: inherit; color: inherit; }
   background: radial-gradient(closest-side, rgba(6, 3, 16, .72), rgba(6, 3, 16, .4) 60%, transparent); }
 #winCount.nice { font-size: 104px; }
 #winCount.show { animation: wcIn .45s cubic-bezier(.2, 1.6, .4, 1) both; }
+#winCount.add { animation: wcAdd .3s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes wcAdd { 0% { transform: translate(-50%, -50%) scale(1.18); } 100% { transform: translate(-50%, -50%) scale(1); } }
+/* one win's amount over its symbols, on its way into the total */
+#sparks .lineAmt { position: absolute; white-space: nowrap; transform: translate(-50%, -50%); font-family: var(--f-title); font-size-adjust: none; font-size: 34px; letter-spacing: 1px;
+  color: #fff6c8; -webkit-text-stroke: 3px #1a0828; paint-order: stroke fill; text-shadow: 0 3px 0 #6b2a05, 0 0 12px var(--c), 0 0 26px var(--c); }
 @keyframes wcIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 #winFly { z-index: 30; }
 #stage.port #winCount { font-size: 72px; } #stage.port #winCount.nice { font-size: 92px; }
@@ -181,7 +186,7 @@ button { font: inherit; color: inherit; }
 #sparks i { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 3px var(--c);
   animation: spark var(--d) cubic-bezier(.15, .7, .3, 1) forwards; }
 @keyframes spark { 0% { transform: translate(0, 0) scale(1.2); opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(.2); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { #sparks { display: none; } #winCount.show, #winField.land { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #sparks { display: none; } #winCount.show, #winCount.add, #winField.land { animation: none; } }
 @keyframes winPop { 0% { transform: translateX(-50%) scale(.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
 
 #side > div { position: absolute; z-index: 5; padding: 8px 14px 10px; text-align: center; border-radius: 12px; border-image: url(../assets/ui/uk_field.webp) 33 40 36 40 fill / 14px 17px 15px;

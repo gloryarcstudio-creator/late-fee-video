@@ -56,14 +56,30 @@
     if (text && text !== el.textContent) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     el.textContent = text; el.classList.toggle('hide', !text);
   }
-  // the spin's total, big in the middle of the reels: pops in and counts up; winCount(0) clears it, winCountFly() sends it to WIN
-  function winCount(amount, nice) {
+  // the spin's total, big in the middle of the reels: pops in and counts up; with `from` it is already showing and each line's
+  // amount bumps it up from there. winCount(0) clears it, winCountFly() sends it to WIN
+  function winCount(amount, nice, from = 0) {
     const el = $('winCount'); clearTimeout(winCount.t); cancelAnimationFrame(winCount.raf);
     if (!amount) { el.className = 'hide'; return; }
-    const dec = I18N.decimalsFor(amount, I18N.currency()), d = fast() ? 0 : S.turbo || S.auto ? 350 : 700, t0 = performance.now();
-    el.className = 'show' + (nice ? ' nice' : '');
-    const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = money(amount * (1 - Math.pow(1 - k, 3)), dec); if (k < 1) winCount.raf = requestAnimationFrame(step); };
+    const dec = I18N.decimalsFor(amount, I18N.currency()), d = fast() ? 0 : S.turbo || S.auto ? 250 : from ? 400 : 700, t0 = performance.now();
+    if (from && el.classList.contains('show')) { el.classList.remove('add'); void el.offsetWidth; el.classList.add('add'); }
+    else el.className = 'show' + (nice ? ' nice' : '');
+    const step = now => { const k = d ? Math.min(1, (now - t0) / d) : 1; el.textContent = money(from + (amount - from) * (1 - Math.pow(1 - k, 3)), dec); if (k < 1) winCount.raf = requestAnimationFrame(step); };
     step(t0);
+  }
+  // one win's amount pops up over its symbols and flies into the total in the middle (#sparks shares the reel coordinates)
+  async function lineChip(group, add100, color, brisk) {
+    if (stillMotion() || !Element.prototype.animate) return wait(brisk ? 80 : 250);
+    const box = $('sparks'), cell = layout.cell, gap = 6, ps = group.flatMap(w => w.positions || []);
+    const cx = ps.reduce((a, p) => a + p.reel * (cell + gap) + cell / 2, 0) / ps.length, cy = ps.reduce((a, p) => a + (p.row - 1) * cell + cell / 2, 0) / ps.length;
+    const el = document.createElement('b'); el.className = 'lineAmt'; el.textContent = '+' + fmt(winMoney(add100));
+    el.style.left = cx + 'px'; el.style.top = cy + 'px'; el.style.setProperty('--c', color); box.appendChild(el);
+    const dIn = brisk ? 70 : 170, hold = brisk ? 30 : 200, dFly = brisk ? 160 : 320, at = 'translate(-50%, -50%)';
+    el.animate([{ transform: at + ' scale(.3)', opacity: 0 }, { transform: at + ' scale(1)', opacity: 1 }], { duration: dIn, easing: 'cubic-bezier(.2, 1.6, .4, 1)', fill: 'forwards' });
+    await wait(dIn + hold);
+    el.animate([{ transform: at + ' scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${box.offsetWidth / 2 - cx}px), calc(-50% + ${box.offsetHeight / 2 - cy}px)) scale(.55)`, opacity: .5 }],
+      { duration: dFly, easing: 'cubic-bezier(.5, 0, .75, .3)', fill: 'forwards' });
+    await wait(dFly); el.remove();
   }
   // the total flies from the reels into the WIN field, which takes the new round total as it lands. The flying copy lives on the
   // stage above the bar (the reels sit under it). sum100: this spin's line wins, added to the round total so far.
@@ -452,20 +468,27 @@
     const col = w => Reels.lineColor((w.meta && w.meta.lineIndex) || 1);
     const all = () => { Reels.dim(true); wins.forEach(w => Reels.highlight(w.positions, 'hit', col(w))); };
     all(); sparks(wins);
-    // the total counts up in the middle (not on the quick passes inside a feature); 5× the bet and up gets the big size and confetti
-    const tot = winMoney(wins.reduce((a, w) => a + (w.win || 0), 0)), nice = tot / S.bet >= 5;
-    if (!quick) { winCount(tot, nice); if (nice && tot / S.bet < 20) particles(16); }
-    const sum100 = wins.reduce((a, w) => a + (w.win || 0), 0);
-    if (quick || S.turbo || S.auto || fast()) { await wait(quick ? 600 : 900); if (!quick) await winCountFly(sum100); return; }
-    await wait(1200); await winCountFly(sum100);
-    // one line at a time (max 6), then back to all
-    if (wins.length > 1) for (const w of wins.slice(0, 6)) {
-      if (S.skip) break;
-      Reels.clear(); Reels.dim(true); Reels.highlight(w.positions, 'hit', col(w)); sfx('line_tick');
-      popup(`${Reels.LABEL[w.symbol] || w.symbol} ×${w.kind}  ${fmt(winMoney(w.win))}`, col(w));
-      await wait(560);
+    const sum100 = wins.reduce((a, w) => a + (w.win || 0), 0), tot = winMoney(sum100), nice = tot / S.bet >= 5;
+    if (quick) { await wait(600); return; }                            // quick passes inside a feature: no count
+    if (fast()) { await winCountFly(sum100); return; }
+    // each win in turn: its symbols light up, its amount flies into the total in the middle (the first one opens it, the next
+    // ones add on); past 8 wins the rest add together. 5× the bet and up gets the big size and confetti; then the total flies to WIN
+    const brisk = S.turbo || S.auto, steps = wins.length > 8 ? [...wins.slice(0, 7).map(w => [w]), wins.slice(7)] : wins.map(w => [w]);
+    await wait(brisk ? 120 : 350);
+    let acc = 0;
+    for (const grp of steps) {
+      const add = grp.reduce((a, w) => a + (w.win || 0), 0);
+      if (!S.skip) {
+        if (wins.length > 1) { Reels.clear(); Reels.dim(true); grp.forEach(w => Reels.highlight(w.positions, 'hit', col(w))); }
+        await lineChip(grp, add, col(grp[0]), brisk);
+      }
+      winCount(winMoney(acc + add), nice, winMoney(acc)); acc += add; sfx('line_tick');
+      if (wins.length > 1 && !S.skip) await wait(brisk ? 40 : 220);
     }
     if (wins.length > 1) { Reels.clear(); all(); }
+    if (nice && tot / S.bet < 20) particles(16);
+    await wait(brisk ? 300 : 700);
+    await winCountFly(sum100);
   }
 
   // media: { video } or { img }, full-bleed; { scene: true } lays it out like the big win scenes (whole frame on black, text on top)
