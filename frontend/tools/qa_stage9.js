@@ -41,6 +41,8 @@ const fast = page => page.evaluate(() => { window.__fast = true; });
 const plays = b => b.filter(x => x.path === '/wallet/play');
 const ends = b => b.filter(x => x.path === '/wallet/end-round');
 const txt = (page, sel) => page.$eval(sel, e => e.textContent.trim());
+// v35: Night Rate is chosen in the catalog (off / ×2 / ×4); keep leaves the catalog open
+async function setAnte(page, n, keep) { await page.click('#buyBtn'); await page.click(`.ante-opt[data-ante="${n}"]`); if (!keep) await page.click('#buyDlg [data-close]'); }
 
 async function t181_274() {
   await ctl(DEFAULT);
@@ -89,7 +91,7 @@ async function t187() {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 592 } });
     let p = await open(Q(), { ctx, expectErrors: true }); await start(p); await fast(p);
     await p.click('#betPlus'); // $2 (not the default)
-    for (let k = 0; k < ante / 2; k++) await p.click('#anteBtn');
+    if (ante) await setAnte(p, ante);
     await p.route('**/wallet/end-round', r => r.abort());
     await ctl('force=win'); await p.click('#spinBtn'); await idle(p);
     const mid = await (await fetch(`${BASE}/wallet/authenticate`, { method: 'POST', body: JSON.stringify({ sessionID: 'sess-ok' }) })).json();
@@ -131,6 +133,19 @@ async function t221_222_31_104_228_107() {
   await p.click('#buyBtn'); await p.click('.buy-item[data-mode="bonus"]'); await p.click('#buyYes'); await idle(p);
   const bp = plays(await bodies());
   pass('31', 'feature buys > 2× confirmed with the price', /\$600\.00/.test(conf) && noPlay && bp.length === 1 && bp[0].body.mode === 'bonus', `"${conf}"; cancel → ${noPlay ? 'no play' : 'PLAY SENT'}; confirm → ${bp.map(x => x.body.mode)}`);
+
+  // v35: Night Rate lives in the catalog; while it is on, the feature buys are closed
+  await ctl('reset=1&force=zero');
+  await setAnte(p, 2, true);
+  const lk = await p.evaluate(() => ({ dis: [...document.querySelectorAll('.buy-item')].every(b => b.disabled), note: !document.getElementById('buyLock').classList.contains('hide'), bet: document.getElementById('betVal').textContent, badge: document.getElementById('anteState').innerText.trim() }));
+  await p.click('.buy-item[data-mode="bonus"]', { force: true }); await p.waitForTimeout(200);
+  const lkAsk = await p.$eval('#buyConfirm', e => !e.classList.contains('hide'));
+  await p.click('.ante-opt[data-ante="0"]');
+  const lkOff = await p.evaluate(() => [...document.querySelectorAll('.buy-item')].every(b => !b.disabled) && document.getElementById('anteState').classList.contains('hide'));
+  await p.click('#buyDlg [data-close]');
+  const lkPlays = plays(await bodies()).length;
+  pass('ante-lock', 'Night Rate is set in the catalog; feature buys are closed while it is on', lk.dis && lk.note && !lkAsk && lkOff && lkPlays === 0 && /\(×2\)/.test(lk.bet) && lk.badge === '×2',
+    `×2 on: buys disabled ${lk.dis}, note ${lk.note}, bet "${lk.bet}", badge "${lk.badge}"; click on a buy → confirm ${lkAsk}, plays ${lkPlays}; off → buys open, badge gone ${lkOff}`);
 
   // [104] autoplay opens settings first
   await ctl('reset=1&force=zero');
@@ -205,12 +220,14 @@ async function rulesCheck() {
   // jurisdiction flags
   await ctl(C('jur=disabledTurbo,disabledAutoplay,disabledBuyFeature,disabledSpacebar'));
   const q = await open(Q()); await start(q); await fast(q); await ctl('reset=1');
-  const hid = await q.evaluate(() => ['turboBtn', 'autoBtn', 'buyBtn'].map(id => document.getElementById(id).hidden || getComputedStyle(document.getElementById(id)).display === 'none'));
+  const hid = await q.evaluate(() => ['turboBtn', 'autoBtn'].map(id => document.getElementById(id).hidden || getComputedStyle(document.getElementById(id)).display === 'none'));
+  // without feature buys the catalog button is the Night Rate button and its window has no buys
+  const nr = await q.$eval('#buyBtn', e => e.innerText.trim()); await q.click('#buyBtn'); const nItems = await q.$$eval('.buy-item', es => es.length); await q.click('#buyDlg [data-close]');
   await q.keyboard.press('Space'); await q.waitForTimeout(300);
   const sp = plays(await bodies()).length;
   await q.click('#menuBtn'); const t2 = await q.$eval('#rulesBody', e => e.innerText + e.innerHTML);
   const leak = ['data-ic="i-auto"', 'data-ic="i-turbo"', 'VIDEO CATALOG', 'space bar', "Director's Cut"].filter(x => t2.includes(x));
-  pass('jur', 'jurisdiction flags: turbo/autoplay/buy/space disabled and removed from rules', hid.every(Boolean) && sp === 0 && leak.length === 0, `hidden ${hid}; Space plays ${sp}; rules leftovers ${leak.join(',') || 'none'}`);
+  pass('jur', 'jurisdiction flags: turbo/autoplay/buy/space disabled and removed from rules', hid.every(Boolean) && nr === 'NIGHT RATE' && nItems === 0 && sp === 0 && leak.length === 0, `turbo/auto hidden ${hid}; catalog button → "${nr}" with ${nItems} buys; Space plays ${sp}; rules leftovers ${leak.join(',') || 'none'}`);
   await q.close();
 }
 
@@ -225,7 +242,7 @@ async function langs() {
     const keys = r.t.match(/\b(r|b|a|th|desc|mode)_[a-z]+\b/g);
     if (keys) bad.push(`${l}: raw keys ${keys.slice(0, 3)}`);
     await p.click('#rulesDlg [data-close]');
-    const of = await p.evaluate(() => ['buyBtn', 'anteBtn', 'balField', 'betField', 'winField', 'tape'].filter(id => { const e = document.getElementById(id); return e.scrollWidth > e.clientWidth + 2; }));
+    const of = await p.evaluate(() => ['buyBtn', 'balField', 'betField', 'winField', 'tape'].filter(id => { const e = document.getElementById(id); return e.scrollWidth > e.clientWidth + 2; }));
     if (of.length) fit.push(`${l}: ${of}`);
     ev.push(`${l}→${r.html} "${r.h}"`);
     if (['de', 'ru', 'ar', 'ja', 'hi', 'fi'].includes(l)) await p.screenshot({ path: `${OUT}/lang_${l}.jpg`, type: 'jpeg', quality: 70 });
@@ -233,7 +250,7 @@ async function langs() {
   }
   pass('239', 'English complete; every Stake language renders, no raw keys', bad.length === 0, bad.join('; ') || ev.slice(0, 16).join('; '));
   pass('240', 'unknown lang falls back to English', ev.find(x => x.startsWith('xx→en "GAME RULES"')) && ev.find(x => x.startsWith('pt-BR→pt')), ev.slice(16).join('; '));
-  rec('i18n-fit', 'translated labels fit their HUD fields', fit.length ? 'AT RISK' : 'PASS', fit.join('; ') || 'no overflow in buyBtn/anteBtn/fields/tape for 16 languages');
+  rec('i18n-fit', 'translated labels fit their HUD fields', fit.length ? 'AT RISK' : 'PASS', fit.join('; ') || 'no overflow in buyBtn/fields/tape for 16 languages');
 }
 
 async function social() {
@@ -308,18 +325,18 @@ async function currencies() {
     await ctl(C(`currency=${c}&balance=${c === 'JPY' ? '123456789000000' : '123456789120000'}&levels=${lv}&def=${lv.split(',')[1]}`));
     const p = await open(Q({ currency: c })); await start(p); await fast(p);
     while (!(await p.$eval('#betPlus', e => e.disabled))) await p.click('#betPlus');
-    await p.click('#anteBtn');
+    await setAnte(p, 2);
     const r = await p.evaluate(() => ({ bal: document.getElementById('balVal').textContent, bet: document.getElementById('betVal').textContent,
       of: ['balField', 'betField', 'winField'].filter(id => {
         const f = document.getElementById(id), b = f.querySelector('b'), r = b.getBoundingClientRect(), fr = f.getBoundingClientRect();
         let bad = r.left < fr.left - 1 || r.right > fr.right + 1 || b.getClientRects().length > 1 || b.scrollWidth > b.clientWidth + 1;
         if (id === 'betField') { const m = document.getElementById('betMinus').getBoundingClientRect(), p = document.getElementById('betPlus').getBoundingClientRect(); bad = bad || r.left < m.right - 1 || r.right > p.left + 1; }
         return bad; }) }));
-    await ctl('force=win'); await p.click('#anteBtn'); await p.click('#spinBtn'); await idle(p);
+    await ctl('force=win'); await setAnte(p, 4); await p.click('#spinBtn'); await idle(p);
     r.win = await txt(p, '#winVal');
-    await p.click('#buyBtn');
+    await setAnte(p, 0, true);
     r.buy = await p.$$eval('.buy-item em', es => es.map(e => e.textContent));
-    r.buyOf = await p.$$eval('.buy-item em', es => es.some(e => e.scrollWidth > e.clientWidth + 2 || e.getClientRects().length > 1));
+    r.buyOf = await p.$$eval('.buy-item em, .ante-opt em i', es => es.some(e => e.scrollWidth > e.clientWidth + 2 || e.getClientRects().length > 1 || e.getBoundingClientRect().right > e.closest('.btn').getBoundingClientRect().right + 1));
     await p.screenshot({ path: `${OUT}/cur_${c}_buy.jpg`, type: 'jpeg', quality: 60 });
     await p.click('#buyDlg [data-close]');
     await p.screenshot({ path: `${OUT}/cur_${c}.jpg`, type: 'jpeg', quality: 70 }); shots.push(`cur_${c}.jpg`);

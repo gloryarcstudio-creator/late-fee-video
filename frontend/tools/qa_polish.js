@@ -9,7 +9,7 @@ const RGS = `?sessionID=sess-ok&rgs_url=${BASE}&lang=en&currency=USD&device=desk
 const VIEW = [[1280, 592], [1024, 576], [800, 450], [400, 225], [390, 844, 1], [320, 568, 1], [430, 932, 1], [812, 375, 1]];
 const results = []; const ok = (name, pass, info = '') => { results.push({ name, pass, info }); console.log((pass ? 'PASS ' : 'FAIL ') + name + (info ? '  ' + info : '')); };
 const ctl = q => fetch(`${BASE}/__ctl?${q}`).then(r => r.json());
-const CTRLS = ['balField', 'betField', 'winField', 'menuBtn', 'soundBtn', 'turboBtn', 'autoBtn', 'spinBtn', 'buyBtn', 'anteBtn', 'betMinus', 'betPlus', 'tape'];
+const CTRLS = ['balField', 'betField', 'winField', 'menuBtn', 'soundBtn', 'turboBtn', 'autoBtn', 'spinBtn', 'buyBtn', 'betMinus', 'betPlus', 'tape'];
 
 async function open(browser, vp, mobile) {
   const ctx = await browser.newContext({ viewport: { width: vp[0], height: vp[1] }, isMobile: !!mobile, hasTouch: !!mobile, deviceScaleFactor: mobile ? 3 : 1 });
@@ -38,14 +38,14 @@ async function open(browser, vp, mobile) {
       const r = id => { const b = document.getElementById(id).getBoundingClientRect(); return { id, l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height }; };
       const rs = ids.map(r).filter(x => x.w > 0);
       const out = rs.filter(x => x.l < -1 || x.t < -1 || x.r > innerWidth + 1 || x.b > innerHeight + 1).map(x => x.id);
-      const top = ['betField', 'menuBtn', 'soundBtn', 'turboBtn', 'autoBtn', 'spinBtn', 'buyBtn', 'anteBtn', 'balField', 'winField', 'tape'];
+      const top = ['betField', 'menuBtn', 'soundBtn', 'turboBtn', 'autoBtn', 'spinBtn', 'buyBtn', 'balField', 'winField', 'tape'];
       const ov = [];
       for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
         const a = rs[i], b = rs[j]; if (!top.includes(a.id) || !top.includes(b.id)) continue;
         const ix = Math.min(a.r, b.r) - Math.max(a.l, b.l), iy = Math.min(a.b, b.b) - Math.max(a.t, b.t);
         if (ix > 2 && iy > 2) ov.push(a.id + '/' + b.id);
       }
-      const covered = ['menuBtn', 'soundBtn', 'turboBtn', 'autoBtn', 'spinBtn', 'buyBtn', 'anteBtn', 'betMinus', 'betPlus'].filter(id => {
+      const covered = ['menuBtn', 'soundBtn', 'turboBtn', 'autoBtn', 'spinBtn', 'buyBtn', 'betMinus', 'betPlus'].filter(id => {
         const b = document.getElementById(id).getBoundingClientRect(); if (!b.width) return false;
         const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !(e && (e.id === id || e.closest('#' + id)));
       });

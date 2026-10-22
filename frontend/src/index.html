@@ -52,8 +52,7 @@
     <div id="tapeLog" class="hide"></div>
   </div>
 
-  <button id="buyBtn" class="pill"><svg class="ic"><use href="#i-tape"/></svg><span data-t="catalog"></span></button>
-  <button id="anteBtn" class="pill toggle"><svg class="ic"><use href="#i-moon"/></svg><span data-t="ante"></span> <b id="anteState">OFF</b></button>
+  <button id="buyBtn" class="pill"><svg class="ic"><use href="#i-tape"/></svg><span id="buyLbl" data-t="catalog"></span><b id="anteState" class="hide"><svg><use href="#i-moon"/></svg><span id="anteX"></span></b></button>
 
   <!-- bet bar: one deck across the bottom (it bleeds into the letterbox); portrait splits it into a value row and a control row -->
   <div id="deck"></div>
@@ -82,8 +81,15 @@
 
 <!-- dialogs (outside stage scaling for readability) -->
 <div id="dlgBack" class="hide"></div>
-<div id="buyDlg" class="dlg hide" role="dialog">
-  <h2 data-t="catalog"></h2>
+<div id="buyDlg" class="dlg hide" role="dialog" aria-labelledby="buyTitle">
+  <h2 id="buyTitle" data-t="catalog"></h2>
+  <!-- Night Rate (ante) lives in the catalog; while it is on, the feature buys below are closed -->
+  <section id="anteBox">
+    <h3><svg class="ic"><use href="#i-moon"/></svg><span data-t="ante"></span></h3>
+    <div id="anteOpts" role="radiogroup"></div>
+    <p id="anteDesc"></p>
+  </section>
+  <p id="buyLock" class="hide"></p>
   <div id="buyList"></div>
   <button class="btn close" data-close aria-label="">✕</button>
 </div>

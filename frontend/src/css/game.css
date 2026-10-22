@@ -255,9 +255,10 @@ button { font: inherit; color: inherit; }
 #spinN { display: none; font-family: var(--f-ui); font-size-adjust: none; font-size: 26px; line-height: 1; text-shadow: 0 0 8px rgba(61, 224, 255, .9); }
 #spinBtn[data-state=auto] .ic { display: none; } #spinBtn[data-state=auto] #spinN { display: block; }
 @media (prefers-reduced-motion: reduce) { #spinBtn::before { animation: none; } }
-/* catalog and night rate (batch 10): the spine of a rental cassette; the icon sits on the black shell at the left, the text on
-   the paper label (label: 17-82 % of the height, stripe to 25 %, from .83 h after the left end to .51 h before the right end).
-   The art is on ::before; Night Rate paints its label stripe cyan with ::after; --ph is the pill height. */
+/* catalog (batch 10): the spine of a rental cassette; the icon sits on the black shell at the left, the text on the paper
+   label (label: 17-82 % of the height, stripe to 25 %, from .83 h after the left end to .51 h before the right end).
+   The art is on ::before; while Night Rate is on, ::after paints the label stripe cyan and a ×2/×4 badge sits on the
+   top edge; --ph is the pill height. */
 .pill { position: absolute; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; white-space: nowrap; --ph: 52px;
   padding: calc(var(--ph) * .08) calc(var(--ph) * .56) 0 calc(var(--ph) * .88); border: 0; border-radius: calc(var(--ph) * .1); background: none;
   font-family: var(--f-title); font-size-adjust: none; font-size: 15px; letter-spacing: .5px; color: #2a1238;
@@ -268,13 +269,14 @@ button { font: inherit; color: inherit; }
 .pill:hover:not(:disabled), .pill:focus-visible { box-shadow: 0 0 0 2px rgba(255, 79, 195, .8), 0 0 20px rgba(255, 79, 195, .6), 0 4px 12px rgba(0, 0, 0, .5); outline: none; }
 .pill:active:not(:disabled) { transform: scale(.96); }
 .pill:disabled { opacity: .4; cursor: default; }
-#anteBtn::after { content: ""; position: absolute; z-index: -1; pointer-events: none; left: calc(var(--ph) * .8375); right: calc(var(--ph) * .5125); top: calc(var(--ph) * .181); height: calc(var(--ph) * .082);
+#buyBtn.on::after { content: ""; position: absolute; z-index: -1; pointer-events: none; left: calc(var(--ph) * .8375); right: calc(var(--ph) * .5125); top: calc(var(--ph) * .181); height: calc(var(--ph) * .082);
   border-radius: calc(var(--ph) * .06) calc(var(--ph) * .06) 0 0; background: linear-gradient(180deg, #7ff6ff, #12b4dc); }
-#anteBtn .ic { color: #8ff0ff; filter: drop-shadow(0 0 4px rgba(61, 224, 255, .9)); }
-#anteBtn:hover:not(:disabled), #anteBtn:focus-visible { box-shadow: 0 0 0 2px rgba(61, 224, 255, .8), 0 0 20px rgba(61, 224, 255, .6), 0 4px 12px rgba(0, 0, 0, .5); }
-#anteState { font-family: var(--f-ui); font-size: .92em; letter-spacing: .5px; font-weight: 400; padding: 2px 8px; border-radius: 6px; background: #2a1238; color: #f4ecd9; }
-#anteBtn.on { box-shadow: 0 0 0 2px var(--neon-c), 0 0 22px rgba(61, 224, 255, .75), 0 4px 12px rgba(0, 0, 0, .5); }
-#anteBtn.on #anteState { background: #0aa9c9; color: #fff; }
+#buyBtn.on .ic { color: #8ff0ff; filter: drop-shadow(0 0 4px rgba(61, 224, 255, .9)); }
+#buyBtn.on, #buyBtn.on:hover:not(:disabled), #buyBtn.on:focus-visible { box-shadow: 0 0 0 2px var(--neon-c), 0 0 22px rgba(61, 224, 255, .75), 0 4px 12px rgba(0, 0, 0, .5); }
+#anteState { position: absolute; right: calc(var(--ph) * .3); top: calc(var(--ph) * -.42); display: flex; align-items: center; gap: .2em; padding: .12em .55em .12em .4em; border-radius: 999px;
+  font-family: var(--f-ui); font-size: calc(var(--ph) * .38); line-height: 1.1; letter-spacing: .5px; font-weight: 400; color: #fff; background: linear-gradient(180deg, #19c4e6, #0a8fb0);
+  box-shadow: 0 0 0 1.5px #bff8ff, 0 0 12px rgba(61, 224, 255, .85), 0 2px 6px rgba(0, 0, 0, .5); text-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+#anteState svg { width: .9em; height: .9em; flex: none; }
 
 /* the bar (batch 10): the front panel of a VCR, chrome trim and a magenta line on top, end caps with screws; only the middle
    stretches, and it reaches the screen edges through the letterbox */
@@ -385,8 +387,7 @@ button { font: inherit; color: inherit; }
 #stage.land #tapeLog { left: calc(1070px + var(--e)); top: 320px; width: 190px; height: 180px; }
 #stage.land #feeBox { left: calc(1070px + var(--e)); top: 320px; width: 190px; }
 #stage.land #feeBox:not(.hide) ~ #tapeLog { top: 420px; height: 90px; }
-#stage.land #buyBtn { left: calc(1056px + var(--e)); top: 452px; width: 210px; height: 52px; }
-#stage.land #anteBtn { left: calc(1056px + var(--e)); top: 516px; width: 210px; height: 52px; font-size: 13px; }
+#stage.land #buyBtn { left: calc(1056px + var(--e)); top: 484px; width: 210px; height: 52px; }
 /* landscape bar: menu · sound · balance · bet − value + · win (centred in the free space) · turbo · SPIN (raised over the edge) · auto */
 #stage.land #hud { left: 16px; right: 16px; bottom: 0; height: var(--deckH); }
 #stage.land #winField { margin: 0 auto; min-width: 200px; }
@@ -396,7 +397,7 @@ button { font: inherit; color: inherit; }
 #stage.land.lite .ib { width: 58px; height: 58px; } #stage.land.lite .ib.step { width: 56px; height: 56px; }
 #stage.land .field + .field, #stage.land .field + .betGrp, #stage.land .betGrp + .field { margin-left: 4px; }
 /* in the bonus the side column (portrait: the row under the TV) shows spins/multiplier/tape log; the disabled catalog and ante buttons would sit under the log */
-#stage.bonus #buyBtn, #stage.bonus #anteBtn { visibility: hidden; }
+#stage.bonus #buyBtn { visibility: hidden; }
 
 /* ---------- portrait 720×1280 ---------- */
 /* tall phones: --e (0–280) extra design height; 60 % goes above the TV (bigger Del), the rest spreads the HUD */
@@ -411,8 +412,7 @@ button { font: inherit; color: inherit; }
 #stage.port #feeBox b { font-size: 26px; line-height: 1.1; }
 #stage.port #tapeLog { left: 30px; top: calc(952px + var(--e) * .9); width: 660px; height: 56px; display: flex; gap: 12px; font-size: 14px; padding: 0 4px; }
 #stage.port #feeBox:not(.hide) ~ #tapeLog { left: 246px; width: 444px; }
-#stage.port #buyBtn { left: 30px; top: calc(952px + var(--e) * .9); width: 320px; height: 56px; }
-#stage.port #anteBtn { left: 370px; top: calc(952px + var(--e) * .9); width: 320px; height: 56px; }
+#stage.port #buyBtn { left: 200px; top: calc(952px + var(--e) * .9); width: 320px; height: 56px; }
 /* portrait bar: a value row (balance · bet · win) over a control row (menu · sound · − · SPIN · + · turbo · auto); bet sits right
    above the spin button with its − and + on either side of it */
 #stage.port { --deckH: calc(258px + var(--e) * .1); }
@@ -435,7 +435,7 @@ button { font: inherit; color: inherit; }
 #stage.port #menuBtn { left: 20px; } #stage.port #soundBtn { left: 102px; } #stage.port #betMinus { left: 196px; }
 #stage.port #betPlus { left: 460px; } #stage.port #turboBtn { left: 554px; } #stage.port #autoBtn { left: 636px; }
 
-#stage.replay #hud, #stage.replay #deck, #stage.replay #buyBtn, #stage.replay #anteBtn { display: none; }
+#stage.replay #hud, #stage.replay #deck, #stage.replay #buyBtn { display: none; }
 
 /* ---------- dialogs (unscaled, responsive) ---------- */
 #dlgBack { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 40; }
@@ -460,6 +460,20 @@ button { font: inherit; color: inherit; }
 .buy-item img { width: 56px; height: 84px; object-fit: contain; flex: none; }
 .buy-item > div { min-width: 0; }
 .buy-item b { display: block; font-size: 1.15em; font-family: var(--f-ui); font-weight: 400; letter-spacing: .5px; } .buy-item span { display: block; color: #bbb; font-size: .9em; } .buy-item em { font-style: normal; color: var(--wild); }
+/* Night Rate at the top of the catalog: off / ×2 / ×4 in cyan; the feature buys below are closed while it is on */
+#anteBox { margin: 0 0 6px; padding: 0 0 10px; border-bottom: 1px solid rgba(61, 224, 255, .25); }
+#anteBox h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; color: #8ff0ff; text-shadow: 0 0 8px rgba(61, 224, 255, .6); }
+#anteBox h3 .ic { width: 1.2em; height: 1.2em; }
+#anteBox.solo { border-bottom: 0; padding-bottom: 0; margin: 0; } #anteBox.solo h3 { display: none; }
+#anteOpts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ante-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 3.6em; padding: 6px 6px; text-align: center; line-height: 1.15; }
+.ante-opt b { font-weight: 400; letter-spacing: .5px; }
+.ante-opt em { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .45em; font-style: normal; font-size: .9em; color: #bbb; font-variant-numeric: tabular-nums; }
+.ante-opt em i { font-style: normal; white-space: nowrap; }
+.ante-opt.on { color: #dffbff; box-shadow: 0 0 0 2px var(--neon-c), 0 0 16px rgba(61, 224, 255, .7); } .ante-opt.on em { color: #8ff0ff; }
+#anteDesc { margin: 8px 0 0; color: #bbb; font-size: .9em; } #anteDesc:empty { display: none; }
+#buyLock { margin: 8px 0 2px; padding: 6px 10px; border-radius: 8px; background: rgba(61, 224, 255, .12); color: #bff8ff; text-align: center; }
+.buy-item:disabled { opacity: .35; filter: grayscale(.7); }
 /* purchase confirmation: its own window and backdrop over the catalog */
 #askBack { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 42; }
 .dlg.ask { z-index: 43; width: min(380px, 90vw); text-align: center; outline: none; }
@@ -517,6 +531,7 @@ table.t td, table.t th { border: 1px solid #444; padding: 4px 6px; text-align: l
   .dlg .btn { padding: 4px 10px; font-size: 12px; border-image-width: 7px; }
   #splash .blue { gap: 2vh; }
   .buy-item { margin: 4px 0; gap: 8px; } .buy-item img { width: 34px; height: 52px; }
+  #anteBox { padding-bottom: 6px; } #anteBox h3 { margin-bottom: 4px; } .ante-opt { min-height: 0; padding: 3px 4px; } #anteDesc, #buyLock { margin-top: 4px; }
   .dlg.ask img { width: 36px; height: 54px; } .dlg.ask h2 { margin: 2px 0; } #buyAskPrice { margin: 0 0 4px; font-size: 1.25em; } #buyConfirmText { margin: 0 0 6px; }
 }
 #devPanel { position: fixed; left: 4px; bottom: 4px; z-index: 50; font-size: 11px; background: rgba(0,0,0,.8); padding: 4px; border: 1px solid #d84; }

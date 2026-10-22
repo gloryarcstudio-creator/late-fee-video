@@ -259,7 +259,7 @@
 
   // long translations (KAPALI, VIDEOLUETTELO…): a pill's text steps down in size until it fits; re-run only when its text or the layout changes
   function fitPills(force) {
-    for (const id of ['buyBtn', 'anteBtn']) {
+    for (const id of ['buyBtn']) {
       const el = $(id), key = el.textContent + '|' + layout.cell; if (!el.clientWidth || (!force && el.dataset.fit === key)) continue; el.dataset.fit = key;
       el.style.fontSize = ''; const cs = getComputedStyle(el); let f = parseFloat(cs.fontSize);
       // the text sits centred on the cassette label, so overflow shows on both sides: compare the in-flow items with the label
@@ -274,10 +274,13 @@
   function updateUI() {
     $('balVal').textContent = S.ready ? fmt(S.balance) : '—';
     $('betVal').textContent = S.ready ? fmt(cost(baseMode())) + (S.ante ? ` (×${S.ante})` : '') : '—';
-    $('anteState').textContent = S.ante ? '×' + S.ante : t('anteOff'); fitPills();
-    $('anteBtn').classList.toggle('on', !!S.ante); $('anteTag').classList.toggle('hide', !S.ante);
+    // the catalog button also opens Night Rate: a ×2/×4 badge on the cassette while it is on; without feature buys it is the Night Rate button
+    const noBuy = !!S.jur.disabledBuyFeature;
+    $('buyLbl').textContent = t(noBuy ? 'ante' : 'catalog'); icon($('buyBtn'), noBuy ? 'i-moon' : 'i-tape');
+    $('anteX').textContent = '×' + S.ante; $('anteState').classList.toggle('hide', !S.ante); fitPills();
+    $('buyBtn').classList.toggle('on', !!S.ante); $('anteTag').classList.toggle('hide', !S.ante);
     const lock = S.busy || S.auto > 0;
-    ['betMinus', 'betPlus', 'betPick', 'buyBtn', 'anteBtn'].forEach(id => { $(id).disabled = lock || !S.ready; });
+    ['betMinus', 'betPlus', 'betPick', 'buyBtn'].forEach(id => { $(id).disabled = lock || !S.ready; });
     $('betMinus').disabled ||= S.betIdx <= 0;
     $('betPlus').disabled ||= S.betIdx >= S.bets.length - 1;
     $('betPick').disabled ||= S.bets.length < 2;
@@ -291,7 +294,6 @@
     $('soundBtn').classList.toggle('off', S.muted); icon($('soundBtn'), S.muted ? 'i-mute' : 'i-sound');
     $('autoBtn').hidden = !!S.jur.disabledAutoplay;
     $('turboBtn').hidden = !!S.jur.disabledTurbo;
-    $('buyBtn').hidden = !!S.jur.disabledBuyFeature;
     const st = $('stage'); st.classList.toggle('busy', S.busy); st.classList.toggle('bonus', S.inBonus); LIVE.sync();
     const aria = { betMinus: t('a_betMinus'), betPlus: t('a_betPlus'), betPick: t('bet'), menuBtn: t('rules'), soundBtn: t('a_sound'), turboBtn: t('a_turbo'), autoBtn: t('autoplay'), spinBtn: t('a_spin') };
     for (const k in aria) $(k).setAttribute('aria-label', I18N.socialize(aria[k]));
@@ -629,19 +631,36 @@
     $('buyConfirm').dataset.mode = m; $('buyConfirm').classList.remove('hide'); $('askBack').classList.remove('hide'); $('buyConfirm').focus();
   }
   function unask() { $('buyConfirm').classList.add('hide'); $('askBack').classList.add('hide'); }
+  // catalog: Night Rate (off / ×2 / ×4) on top, the feature buys below; the buys are closed while Night Rate is on
   function buildBuy() {
-    const list = $('buyList'); list.textContent = '';
-    BUY_MODES.forEach(m => {
+    const noBuy = !!S.jur.disabledBuyFeature;
+    $('buyTitle').textContent = t(noBuy ? 'ante' : 'catalog'); $('anteBox').classList.toggle('solo', noBuy);
+    const opts = $('anteOpts'); opts.textContent = '';
+    [0, 2, 4].forEach(n => {
+      const m = n ? 'ante' + n : 'base', b = document.createElement('button'); b.className = 'btn ante-opt'; b.dataset.ante = n; b.setAttribute('role', 'radio');
+      b.innerHTML = `<b>${n ? t('mode_' + m) : t('anteOff')}</b><em dir="ltr">${n ? `<i>×${n}</i>` : ''}<i>${fmt(cost(m))}</i></em>`;
+      b.addEventListener('click', () => { if (S.ante === n || S.busy) return; S.ante = n; sfx('ui_toggle'); updateUI(); buildRules(); syncBuy(); });
+      opts.appendChild(b);
+    });
+    const list = $('buyList'); list.textContent = ''; list.hidden = noBuy;
+    if (!noBuy) BUY_MODES.forEach(m => {
       const b = document.createElement('button'); b.className = 'btn buy-item'; b.dataset.mode = m;
       const cover = BUY_COVER[m];
       b.innerHTML = `<img src="assets/ui/${cover}.webp" alt=""><div><b>${t('mode_' + m)}</b><span>${I18N.socialize(t('desc_' + m))}</span><em>${t('price')}: ${fmt(cost(m))} (${MD[m].cost}×)</em></div>`;
       b.addEventListener('click', () => {
+        if (S.ante) return;
         if (S.balance + 1e-9 < cost(m)) { toast(t('noFunds')); sfx('nofunds'); return; }
         ask(m); sfx('ui_open');
       });
       list.appendChild(b);
     });
-    unask();
+    syncBuy(); unask();
+  }
+  function syncBuy() {
+    $('anteOpts').querySelectorAll('.ante-opt').forEach(b => { const on = +b.dataset.ante === S.ante; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    $('anteDesc').textContent = S.ante ? I18N.socialize(t('desc_ante' + S.ante)) : '';
+    $('buyLock').textContent = I18N.socialize(t('anteLock')); $('buyLock').classList.toggle('hide', !S.ante || !!S.jur.disabledBuyFeature);
+    $('buyList').querySelectorAll('.buy-item').forEach(b => { b.disabled = !!S.ante; });
   }
   // bet picker: every bet level in one window (the − / + steppers stay for one-step changes)
   function buildBets() {
@@ -668,7 +687,7 @@
     const pays = Object.entries(LINE_PAYS).map(([s, p]) => `<tr><td><span class="mini s-${s}">${Reels.LABEL[s]}</span></td>${p.map(v => `<td>${+(v / 20).toFixed(2)}×</td>`).join('')}</tr>`).join('');
     const lines = Reels.PAYLINES.slice(1).map((pl, i) => `<div class="pl-mini"><b>${i + 1}</b>${[0, 1, 2].map(row => `<div>${pl.map(r => `<i class="${r === row ? 'on' : ''}"></i>`).join('')}</div>`).join('')}</div>`).join('');
     const ic = id => `<svg class="ic" data-ic="${id}"><use href="#${id}"/></svg>`;
-    const btn = [[ic('i-spin'), 'b_spin'], [`${ic('i-minus')} ${ic('i-plus')}`, 'b_bet', 'b_betPick'], [t('ante'), 'b_ante'], J.disabledBuyFeature ? null : [t('catalog'), 'b_catalog'],
+    const btn = [[ic('i-spin'), 'b_spin'], [`${ic('i-minus')} ${ic('i-plus')}`, 'b_bet', 'b_betPick'], J.disabledBuyFeature ? null : [t('catalog'), 'b_catalog'], J.disabledBuyFeature ? [t('ante'), 'b_ante'] : [t('ante'), 'b_ante', 'anteLock'],
       J.disabledAutoplay ? null : [ic('i-auto'), 'b_auto'], J.disabledTurbo ? null : [ic('i-turbo'), 'b_turbo'], [ic('i-sound'), 'b_sound'], [ic('i-menu'), 'b_menu'], ['✕', 'b_close']]
       .filter(Boolean).map(([k, v, more]) => `<li><b>${k}</b> ${T(v)}${more ? ' ' + T(more) : ''}</li>`).join('');
     const disc = I18N.lang() !== 'en' && t('r_disc') !== 'r_disc' ? `<p>${t('r_disc')}</p>` : '';
@@ -887,13 +906,12 @@
   click('betMinus', () => { if (S.betIdx > 0) { S.betIdx--; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
   click('betPick', () => { if (S.busy || S.auto > 0) return; buildBets(); dlg('betDlg', true); sfx('ui_open'); });
   click('betPlus', () => { if (S.betIdx < S.bets.length - 1) { S.betIdx++; S.bet = S.bets[S.betIdx]; sfx('click'); updateUI(); buildRules(); } });
-  click('anteBtn', () => { S.ante = S.ante === 0 ? 2 : S.ante === 2 ? 4 : 0; sfx('ui_toggle'); updateUI(); });
   click('turboBtn', () => { S.turbo = !S.turbo; sfx('ui_toggle'); updateUI(); });
   click('soundBtn', () => { S.muted = !S.muted; AUDIO.setMuted(S.muted); sfx('ui_toggle'); updateUI(); });
   click('menuBtn', () => { buildRules(); dlg('rulesDlg', true); sfx('ui_open'); });
   click('buyBtn', () => { if (S.busy) return; buildBuy(); dlg('buyDlg', true); sfx('ui_open'); });
   click('autoBtn', () => { if (S.auto > 0) return stopAuto(); if (!S.busy) { dlg('autoDlg', true); sfx('ui_open'); } });
-  click('buyYes', () => { const m = $('buyConfirm').dataset.mode; dlg('buyDlg', false); sfx('ui_click'); spin(m); });
+  click('buyYes', () => { const m = $('buyConfirm').dataset.mode; dlg('buyDlg', false); sfx('ui_click'); if (!S.ante) spin(m); });
   click('buyNo', () => { unask(); sfx('ui_click'); });
   $('askBack').addEventListener('click', unask);
   click('autoStart', () => {
