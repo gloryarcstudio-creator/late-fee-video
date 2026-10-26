@@ -35,7 +35,7 @@ let fails = 0; const ok = (n, p, i = '') => { fails += p ? 0 : 1; console.log((p
   await page.evaluate(() => { window.__drawn = []; });
   await page.waitForTimeout(4500);
   { const d = (await page.evaluate(() => window.__drawn)).map(x => x[1]).filter(u => /^idle_\d+\.webp$/.test(u)).map(u => +u.match(/\d+/)[0]);
-    const n = 95, bad = d.slice(1).map((v, i) => [d[i], v]).filter(([a, b]) => { const st = (b - a + (n - 1)) % (n - 1); return !(st <= 2 || (a === n - 1 && b <= 1)); });
+    const n = await page.evaluate(() => DEL.CLIPS.idle[0]), bad = d.slice(1).map((v, i) => [d[i], v]).filter(([a, b]) => { const st = (b - a + (n - 1)) % (n - 1); return !(st <= 2 || (a === n - 1 && b <= 1)); });
     ok('idle frames drawn in order (4.5 s)', d.length > 60 && bad.length === 0, `${d.length} draws, ${new Set(d).size} frames, out of order: ${bad.slice(0, 5).map(x => x.join('→')).join(' ')}`); }
   const loaded = await page.evaluate(() => Object.keys(DEL.CLIPS).length);
   ok('13 clips known', loaded === 13);
